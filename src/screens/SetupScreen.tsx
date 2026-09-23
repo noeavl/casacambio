@@ -7,6 +7,7 @@ import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type as type_, type Palette } from '../theme';
+import { isValidEmail } from '../utils/auth';
 import { parseAmount, sanitizeAmountInput } from '../utils/format';
 
 /** Configuración inicial: se muestra una sola vez, antes de operar. */
@@ -22,20 +23,25 @@ export function SetupScreen() {
   const [receiptPrefix, setReceiptPrefix] = useState(settings.receiptPrefix);
   const [commission, setCommission] = useState(String(settings.commissionPercent));
 
-  const [adminName, setAdminName] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Precargados por ahora para agilizar pruebas; siguen siendo editables.
+  const [adminName, setAdminName] = useState('Admin');
+  const [email, setEmail] = useState('admin@admin.admin');
+  const [password, setPassword] = useState('admin');
+  const [confirmPassword, setConfirmPassword] = useState('admin');
   const [submitting, setSubmitting] = useState(false);
 
   const canContinue =
     businessName.trim().length > 0 &&
     baseCurrency.trim().length >= 3 &&
     adminName.trim().length > 0 &&
-    username.trim().length > 0 &&
+    email.trim().length > 0 &&
     password.length > 0;
 
   const handleStart = async () => {
+    if (!isValidEmail(email)) {
+      Alert.alert(t('setup.adminSection'), t('setup.alertEmailInvalid'));
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert(t('setup.adminSection'), t('setup.alertPasswordMismatch'));
       return;
@@ -46,7 +52,7 @@ export function SetupScreen() {
     }
 
     setSubmitting(true);
-    await createFirstAdmin({ username, password, name: adminName.trim(), role: 'admin' });
+    await createFirstAdmin({ email, password, name: adminName.trim(), role: 'admin' });
     completeSetup({
       businessName: businessName.trim(),
       branch: branch.trim(),
@@ -124,11 +130,12 @@ export function SetupScreen() {
             placeholder={t('setup.adminNamePlaceholder')}
           />
           <Field
-            label={t('setup.usernameLabel')}
-            value={username}
-            onChangeText={setUsername}
-            placeholder={t('setup.usernamePlaceholder')}
+            label={t('setup.emailLabel')}
+            value={email}
+            onChangeText={setEmail}
+            placeholder={t('setup.emailPlaceholder')}
             autoCapitalize="none"
+            keyboardType="email-address"
           />
           <Field
             label={t('setup.passwordLabel')}

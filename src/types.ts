@@ -49,7 +49,7 @@ export type UserRole = 'admin' | 'cashier';
 export interface AppUser {
   id: string;
   /** Único, en minúsculas. */
-  username: string;
+  email: string;
   /** Hash SHA-256 de la contraseña; nunca se guarda en texto plano. */
   passwordHash: string;
   name: string;

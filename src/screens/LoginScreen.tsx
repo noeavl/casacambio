@@ -7,22 +7,22 @@ import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { spacing } from '../theme';
 
-/** Pantalla de acceso: usuario y contraseña guardados en el dispositivo. */
+/** Pantalla de acceso: correo y contraseña guardados en el dispositivo. */
 export function LoginScreen() {
   const { login } = useApp();
   const { t } = useLanguage();
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!username.trim() || !password) {
+    if (!email.trim() || !password) {
       Alert.alert(t('login.alertTitle'), t('login.alertEmpty'));
       return;
     }
     setSubmitting(true);
-    const ok = await login(username, password);
+    const ok = await login(email, password);
     setSubmitting(false);
     if (!ok) {
       Alert.alert(t('login.alertTitle'), t('login.alertInvalid'));
@@ -35,10 +35,11 @@ export function LoginScreen() {
         <Card style={styles.card}>
           <View style={styles.group}>
             <Field
-              label={t('login.usernameLabel')}
-              value={username}
-              onChangeText={setUsername}
+              label={t('login.emailLabel')}
+              value={email}
+              onChangeText={setEmail}
               autoCapitalize="none"
+              keyboardType="email-address"
             />
             <Field
               label={t('login.passwordLabel')}

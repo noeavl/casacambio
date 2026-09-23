@@ -10,11 +10,11 @@ import {
 
 import { defaultRates, defaultSettings, storage } from '../storage';
 import type { AppUser, Customer, ExchangeRate, Operation, Settings } from '../types';
-import { hashPassword, normalizeUsername } from '../utils/auth';
+import { hashPassword, normalizeEmail } from '../utils/auth';
 import { buildFolio, uid } from '../utils/format';
 
 type NewOperation = Omit<Operation, 'id' | 'folio' | 'createdAt'>;
-type NewUser = { username: string; password: string; name: string; role: AppUser['role'] };
+type NewUser = { email: string; password: string; name: string; role: AppUser['role'] };
 
 interface AppContextValue {
   ready: boolean;
@@ -36,7 +36,7 @@ interface AppContextValue {
   removeCustomer: (id: string) => void;
   /** Crea el primer usuario (admin) al terminar la configuración inicial e inicia su sesión. */
   createFirstAdmin: (user: NewUser) => Promise<void>;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   resetAll: () => void;
 }
@@ -192,7 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (user: NewUser) => {
       const record: AppUser = {
         id: uid('usr'),
-        username: normalizeUsername(user.username),
+        email: normalizeEmail(user.email),
         passwordHash: await hashPassword(user.password),
         name: user.name,
         role: 'admin',
@@ -207,10 +207,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const login = useCallback(
-    async (username: string, password: string): Promise<boolean> => {
-      const normalized = normalizeUsername(username);
+    async (email: string, password: string): Promise<boolean> => {
+      const normalized = normalizeEmail(email);
       const hash = await hashPassword(password);
-      const match = users.find((u) => u.username === normalized && u.active);
+      const match = users.find((u) => u.email === normalized && u.active);
       if (!match || match.passwordHash !== hash) return false;
       setCurrentUserId(match.id);
       void storage.saveSession(match.id);
