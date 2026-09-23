@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AccountScreen } from '../screens/AccountScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type as type_, type Palette } from '../theme';
@@ -20,6 +22,8 @@ const ALL_TABS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes
 /** Máximo de pestañas visibles a la vez, contando el botón "Más" si hace falta. */
 const MAX_VISIBLE_TABS = 4;
 
+type MoreSection = 'menu' | 'profile' | 'account';
+
 export function TabBar({
   active,
   onChange,
@@ -32,6 +36,7 @@ export function TabBar({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreSection, setMoreSection] = useState<MoreSection>('menu');
 
   const hasOverflow = ALL_TABS.length > MAX_VISIBLE_TABS;
   const primaryTabs = hasOverflow ? ALL_TABS.slice(0, MAX_VISIBLE_TABS - 1) : ALL_TABS;
@@ -42,6 +47,14 @@ export function TabBar({
     onChange(key);
     setMoreOpen(false);
   };
+
+  const openMore = () => {
+    setMoreSection('menu');
+    setMoreOpen(true);
+  };
+
+  const closeMore = () => setMoreOpen(false);
+  const backToMenu = () => setMoreSection('menu');
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
@@ -68,7 +81,7 @@ export function TabBar({
           accessibilityRole="tab"
           accessibilityState={{ selected: isMoreActive }}
           accessibilityLabel={t('common.more')}
-          onPress={() => setMoreOpen(true)}
+          onPress={openMore}
           style={styles.tab}
         >
           <View style={[styles.dot, isMoreActive && styles.dotActive]} />
@@ -82,18 +95,30 @@ export function TabBar({
         visible={moreOpen}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setMoreOpen(false)}
+        onRequestClose={moreSection === 'menu' ? closeMore : backToMenu}
       >
-        <Screen title={t('common.more')} onBack={() => setMoreOpen(false)}>
-          <Card style={styles.menuCard}>
-            {overflowTabs.map((key, index) => (
-              <View key={key}>
-                {index > 0 ? <Divider style={styles.rowDivider} /> : null}
-                <MenuRow label={t(`tabs.${key}`)} onPress={() => select(key)} />
-              </View>
-            ))}
-          </Card>
-        </Screen>
+        {moreSection === 'profile' ? (
+          <ProfileScreen onBack={backToMenu} />
+        ) : moreSection === 'account' ? (
+          <AccountScreen onBack={backToMenu} />
+        ) : (
+          <Screen title={t('common.more')} onBack={closeMore}>
+            <Card style={styles.menuCard}>
+              {overflowTabs.map((key, index) => (
+                <View key={key}>
+                  {index > 0 ? <Divider style={styles.rowDivider} /> : null}
+                  <MenuRow label={t(`tabs.${key}`)} onPress={() => select(key)} />
+                </View>
+              ))}
+            </Card>
+
+            <Card style={styles.menuCard}>
+              <MenuRow label={t('profile.title')} onPress={() => setMoreSection('profile')} />
+              <Divider style={styles.rowDivider} />
+              <MenuRow label={t('account.title')} onPress={() => setMoreSection('account')} />
+            </Card>
+          </Screen>
+        )}
       </Modal>
     </View>
   );

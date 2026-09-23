@@ -16,7 +16,12 @@ import { buildFolio, uid } from '../utils/format';
 type NewOperation = Omit<Operation, 'id' | 'folio' | 'createdAt'>;
 
 /** Cuenta que se crea sola la primera vez que no hay ningún usuario. */
-const DEFAULT_ADMIN = { email: 'admin@admin.admin', password: 'admin', name: 'Admin' } as const;
+const DEFAULT_ADMIN = {
+  email: 'admin@admin.admin',
+  password: 'admin',
+  firstName: 'Admin',
+  lastName: '',
+} as const;
 
 /**
  * Carga lo guardado y rellena con valores por defecto lo que falte (ajustes,
@@ -52,7 +57,8 @@ async function loadAndBootstrap() {
       id: uid('usr'),
       email: normalizeEmail(DEFAULT_ADMIN.email),
       passwordHash: await hashPassword(DEFAULT_ADMIN.password),
-      name: DEFAULT_ADMIN.name,
+      firstName: DEFAULT_ADMIN.firstName,
+      lastName: DEFAULT_ADMIN.lastName,
       role: 'admin',
       active: true,
       createdAt: new Date().toISOString(),
@@ -89,6 +95,10 @@ interface AppContextValue {
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Customer;
   updateCustomer: (id: string, patch: Partial<Omit<Customer, 'id'>>) => void;
   removeCustomer: (id: string) => void;
+  /** Cambia nombre y apellido del usuario con la sesión iniciada. */
+  updateProfile: (patch: { firstName: string; lastName: string }) => void;
+  /** Cambia la contraseña del usuario con la sesión iniciada. */
+  changePassword: (newPassword: string) => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   resetAll: () => void;
@@ -213,6 +223,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateProfile = useCallback(
+    (patch: { firstName: string; lastName: string }) => {
+      setUsers((current) => {
+        const next = current.map((u) => (u.id === currentUserId ? { ...u, ...patch } : u));
+        void storage.saveUsers(next);
+        return next;
+      });
+    },
+    [currentUserId],
+  );
+
+  const changePassword = useCallback(
+    async (newPassword: string) => {
+      const passwordHash = await hashPassword(newPassword);
+      setUsers((current) => {
+        const next = current.map((u) => (u.id === currentUserId ? { ...u, passwordHash } : u));
+        void storage.saveUsers(next);
+        return next;
+      });
+    },
+    [currentUserId],
+  );
+
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       const normalized = normalizeEmail(email);
@@ -267,6 +300,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCustomer,
       updateCustomer,
       removeCustomer,
+      updateProfile,
+      changePassword,
       login,
       logout,
       resetAll,
@@ -288,6 +323,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCustomer,
       updateCustomer,
       removeCustomer,
+      updateProfile,
+      changePassword,
       login,
       logout,
       resetAll,

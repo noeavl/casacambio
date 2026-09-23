@@ -52,7 +52,8 @@ export interface AppUser {
   email: string;
   /** Hash SHA-256 de la contraseña; nunca se guarda en texto plano. */
   passwordHash: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   active: boolean;
   createdAt: string;

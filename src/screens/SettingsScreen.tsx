@@ -7,6 +7,7 @@ import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing } from '../theme';
+import { fullName } from '../utils/format';
 import { AboutSettingsScreen } from './settings/AboutSettingsScreen';
 import { AppearanceSettingsScreen } from './settings/AppearanceSettingsScreen';
 import { BusinessSettingsScreen } from './settings/BusinessSettingsScreen';
@@ -78,7 +79,7 @@ export function SettingsScreen() {
 
       <Card style={styles.menuCard}>
         {currentUser ? (
-          <Muted style={styles.signedInAs}>{t('settings.signedInAs', { name: currentUser.name })}</Muted>
+          <Muted style={styles.signedInAs}>{t('settings.signedInAs', { name: fullName(currentUser) })}</Muted>
         ) : null}
         <MenuRow label={t('settings.logoutButton')} onPress={handleLogout} danger />
       </Card>

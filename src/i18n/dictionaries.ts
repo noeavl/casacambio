@@ -208,6 +208,26 @@ const es = {
     alertInvalid: 'Correo o contraseña incorrectos.',
     alertEmpty: 'Captura tu correo y contraseña.',
   },
+  profile: {
+    title: 'Perfil',
+    firstNameLabel: 'Nombre',
+    lastNameLabel: 'Apellido',
+    alertFirstNameRequired: 'Captura tu nombre.',
+    savedTitle: 'Perfil',
+    savedMessage: 'Tu perfil se actualizó correctamente.',
+  },
+  account: {
+    title: 'Cuenta',
+    emailLabel: 'Correo electrónico',
+    newPasswordLabel: 'Nueva contraseña',
+    confirmPasswordLabel: 'Confirmar nueva contraseña',
+    alertTitle: 'Cuenta',
+    alertPasswordRequired: 'Captura una nueva contraseña.',
+    alertPasswordMismatch: 'Las contraseñas no coinciden.',
+    alertPasswordTooShort: 'La contraseña debe tener al menos 4 caracteres.',
+    savedTitle: 'Cuenta',
+    savedMessage: 'Tu contraseña se actualizó correctamente.',
+  },
 };
 
 const en: Dictionary = {
@@ -419,6 +439,26 @@ const en: Dictionary = {
     alertTitle: 'Sign in',
     alertInvalid: 'Incorrect email or password.',
     alertEmpty: 'Enter your email and password.',
+  },
+  profile: {
+    title: 'Profile',
+    firstNameLabel: 'First name',
+    lastNameLabel: 'Last name',
+    alertFirstNameRequired: 'Enter your first name.',
+    savedTitle: 'Profile',
+    savedMessage: 'Your profile was updated successfully.',
+  },
+  account: {
+    title: 'Account',
+    emailLabel: 'Email',
+    newPasswordLabel: 'New password',
+    confirmPasswordLabel: 'Confirm new password',
+    alertTitle: 'Account',
+    alertPasswordRequired: 'Enter a new password.',
+    alertPasswordMismatch: "Passwords don't match.",
+    alertPasswordTooShort: 'Password must be at least 4 characters.',
+    savedTitle: 'Account',
+    savedMessage: 'Your password was updated successfully.',
   },
 };
 

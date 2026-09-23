@@ -22,7 +22,7 @@ import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { AmountMode, Customer, ExchangeRate, Operation, OperationType } from '../types';
 import { quote } from '../utils/exchange';
-import { formatMoney, formatNumber, parseAmount, sanitizeAmountInput } from '../utils/format';
+import { formatMoney, formatNumber, fullName, parseAmount, sanitizeAmountInput } from '../utils/format';
 
 function RateChip({
   rate,
@@ -112,7 +112,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
       commissionPercent: settings.commissionPercent,
       commissionAmount: result.commissionAmount,
       netLocal: result.netLocal,
-      operator: currentUser?.name ?? '',
+      operator: currentUser ? fullName(currentUser) : '',
       customer: selectedCustomer?.name ?? '',
       note: note.trim(),
     });

@@ -64,3 +64,7 @@ export function buildFolio(prefix: string, sequence: number): string {
   const clean = prefix.trim() || 'REC';
   return `${clean}-${String(sequence).padStart(5, '0')}`;
 }
+
+export function fullName(user: { firstName: string; lastName: string }): string {
+  return [user.firstName, user.lastName].filter((part) => part.trim().length > 0).join(' ');
+}
