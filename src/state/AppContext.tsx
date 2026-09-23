@@ -14,7 +14,63 @@ import { hashPassword, normalizeEmail } from '../utils/auth';
 import { buildFolio, uid } from '../utils/format';
 
 type NewOperation = Omit<Operation, 'id' | 'folio' | 'createdAt'>;
-type NewUser = { email: string; password: string; name: string; role: AppUser['role'] };
+
+/** Cuenta que se crea sola la primera vez que no hay ningún usuario. */
+const DEFAULT_ADMIN = { email: 'admin@admin.admin', password: 'admin', name: 'Admin' } as const;
+
+/**
+ * Carga lo guardado y rellena con valores por defecto lo que falte (ajustes,
+ * tipos de cambio, usuario admin), sin ninguna pantalla de onboarding.
+ * Se usa al arrancar la app y también tras "Restablecer aplicación".
+ */
+async function loadAndBootstrap() {
+  const [loadedSettings, loadedRates, loadedOperations, loadedCustomers, loadedUsers, session] =
+    await Promise.all([
+      storage.loadSettings(),
+      storage.loadRates(),
+      storage.loadOperations(),
+      storage.loadCustomers(),
+      storage.loadUsers(),
+      storage.loadSession(),
+    ]);
+
+  let settings = loadedSettings;
+  if (!settings.configured) {
+    settings = { ...settings, configured: true };
+    void storage.saveSettings(settings);
+  }
+
+  let rates = loadedRates;
+  if (rates.length === 0) {
+    rates = defaultRates();
+    void storage.saveRates(rates);
+  }
+
+  let users = loadedUsers;
+  if (users.length === 0) {
+    const admin: AppUser = {
+      id: uid('usr'),
+      email: normalizeEmail(DEFAULT_ADMIN.email),
+      passwordHash: await hashPassword(DEFAULT_ADMIN.password),
+      name: DEFAULT_ADMIN.name,
+      role: 'admin',
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+    users = [admin];
+    void storage.saveUsers(users);
+  }
+
+  const sessionUser = users.find((u) => u.id === session && u.active);
+  return {
+    settings,
+    rates,
+    operations: loadedOperations,
+    customers: loadedCustomers,
+    users,
+    currentUserId: sessionUser ? sessionUser.id : null,
+  };
+}
 
 interface AppContextValue {
   ready: boolean;
@@ -25,7 +81,6 @@ interface AppContextValue {
   users: AppUser[];
   currentUser: AppUser | null;
   updateSettings: (patch: Partial<Settings>) => void;
-  completeSetup: (patch: Partial<Settings>) => void;
   addRate: (rate: Omit<ExchangeRate, 'id' | 'updatedAt'>) => void;
   updateRate: (id: string, patch: Partial<Omit<ExchangeRate, 'id'>>) => void;
   removeRate: (id: string) => void;
@@ -34,8 +89,6 @@ interface AppContextValue {
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Customer;
   updateCustomer: (id: string, patch: Partial<Omit<Customer, 'id'>>) => void;
   removeCustomer: (id: string) => void;
-  /** Crea el primer usuario (admin) al terminar la configuración inicial e inicia su sesión. */
-  createFirstAdmin: (user: NewUser) => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   resetAll: () => void;
@@ -55,23 +108,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [loadedSettings, loadedRates, loadedOperations, loadedCustomers, loadedUsers, session] =
-        await Promise.all([
-          storage.loadSettings(),
-          storage.loadRates(),
-          storage.loadOperations(),
-          storage.loadCustomers(),
-          storage.loadUsers(),
-          storage.loadSession(),
-        ]);
+      const state = await loadAndBootstrap();
       if (!alive) return;
-      setSettings(loadedSettings);
-      setRates(loadedRates);
-      setOperations(loadedOperations);
-      setCustomers(loadedCustomers);
-      setUsers(loadedUsers);
-      const sessionUser = loadedUsers.find((u) => u.id === session && u.active);
-      setCurrentUserId(sessionUser ? sessionUser.id : null);
+      setSettings(state.settings);
+      setRates(state.rates);
+      setOperations(state.operations);
+      setCustomers(state.customers);
+      setUsers(state.users);
+      setCurrentUserId(state.currentUserId);
       setReady(true);
     })();
     return () => {
@@ -84,20 +128,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const next = { ...current, ...patch };
       void storage.saveSettings(next);
       return next;
-    });
-  }, []);
-
-  const completeSetup = useCallback((patch: Partial<Settings>) => {
-    setSettings((current) => {
-      const next = { ...current, ...patch, configured: true };
-      void storage.saveSettings(next);
-      return next;
-    });
-    setRates((current) => {
-      if (current.length > 0) return current;
-      const seeded = defaultRates();
-      void storage.saveRates(seeded);
-      return seeded;
     });
   }, []);
 
@@ -183,29 +213,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const persistUsers = useCallback((next: AppUser[]) => {
-    setUsers(next);
-    void storage.saveUsers(next);
-  }, []);
-
-  const createFirstAdmin = useCallback(
-    async (user: NewUser) => {
-      const record: AppUser = {
-        id: uid('usr'),
-        email: normalizeEmail(user.email),
-        passwordHash: await hashPassword(user.password),
-        name: user.name,
-        role: 'admin',
-        active: true,
-        createdAt: new Date().toISOString(),
-      };
-      persistUsers([record]);
-      setCurrentUserId(record.id);
-      void storage.saveSession(record.id);
-    },
-    [persistUsers],
-  );
-
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       const normalized = normalizeEmail(email);
@@ -225,13 +232,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetAll = useCallback(() => {
-    void storage.clearAll();
-    setSettings(defaultSettings);
-    setRates([]);
-    setOperations([]);
-    setCustomers([]);
-    setUsers([]);
-    setCurrentUserId(null);
+    void (async () => {
+      await storage.clearAll();
+      const state = await loadAndBootstrap();
+      setSettings(state.settings);
+      setRates(state.rates);
+      setOperations(state.operations);
+      setCustomers(state.customers);
+      setUsers(state.users);
+      setCurrentUserId(state.currentUserId);
+    })();
   }, []);
 
   const currentUser = useMemo(
@@ -249,7 +259,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users,
       currentUser,
       updateSettings,
-      completeSetup,
       addRate,
       updateRate,
       removeRate,
@@ -258,7 +267,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCustomer,
       updateCustomer,
       removeCustomer,
-      createFirstAdmin,
       login,
       logout,
       resetAll,
@@ -272,7 +280,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users,
       currentUser,
       updateSettings,
-      completeSetup,
       addRate,
       updateRate,
       removeRate,
@@ -281,7 +288,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCustomer,
       updateCustomer,
       removeCustomer,
-      createFirstAdmin,
       login,
       logout,
       resetAll,

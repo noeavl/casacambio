@@ -11,24 +11,16 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { OperationScreen } from './src/screens/OperationScreen';
 import { RatesScreen } from './src/screens/RatesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
-import { SetupScreen } from './src/screens/SetupScreen';
 import { AppProvider, useApp } from './src/state/AppContext';
 import { LanguageProvider } from './src/state/LanguageContext';
 import { ThemeProvider, useTheme } from './src/state/ThemeContext';
 
 function Root() {
-  const { ready, settings, users, currentUser } = useApp();
+  const { ready, currentUser } = useApp();
   const { colors } = useTheme();
   const [tab, setTab] = useState<TabKey>('operar');
 
   if (!ready) return <Loader />;
-
-  // Sin usuarios no hay a quién iniciarle sesión: manda a Configuración
-  // (con los datos ya guardados prellenados) para crear la cuenta que falta,
-  // incluso si el negocio ya se había configurado antes de que existiera el login.
-  if (!settings.configured || users.length === 0) {
-    return <SetupScreen />;
-  }
 
   if (!currentUser) {
     return <LoginScreen />;
