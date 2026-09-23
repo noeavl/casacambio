@@ -70,6 +70,37 @@ export function Row({
   );
 }
 
+export function MenuRow({
+  label,
+  value,
+  onPress,
+  danger = false,
+}: {
+  label: string;
+  value?: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  const s = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [s.menuRow, pressed && s.menuRowPressed]}
+    >
+      <Text style={[s.menuRowLabel, danger && s.menuRowLabelDanger]}>{label}</Text>
+      <View style={s.menuRowRight}>
+        {value ? (
+          <Text style={s.menuRowValue} numberOfLines={1}>
+            {value}
+          </Text>
+        ) : null}
+        {danger ? null : <Text style={s.menuRowChevron}>›</Text>}
+      </View>
+    </Pressable>
+  );
+}
+
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   const s = useStyles();
   return (
@@ -291,6 +322,21 @@ function createStyles(colors: Palette) {
     rowLabelEmphasis: { color: colors.text, fontWeight: '600' },
     rowValue: { ...type_.body, color: colors.text, textAlign: 'right', flexShrink: 1 },
     rowValueEmphasis: { fontSize: 20, fontWeight: '600' },
+
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      gap: spacing.md,
+    },
+    menuRowPressed: { opacity: 0.6 },
+    menuRowLabel: { ...type_.body, color: colors.text, flexShrink: 1 },
+    menuRowLabelDanger: { color: colors.danger },
+    menuRowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
+    menuRowValue: { ...type_.small, color: colors.textMuted, flexShrink: 1, textAlign: 'right' },
+    menuRowChevron: { color: colors.textDim, fontSize: 18 },
 
     empty: { paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm },
     emptyTitle: { ...type_.body, color: colors.textMuted },
