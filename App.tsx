@@ -11,9 +11,11 @@ import { RatesScreen } from './src/screens/RatesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { AppProvider, useApp } from './src/state/AppContext';
+import { ThemeProvider, useTheme } from './src/state/ThemeContext';
 
 function Root() {
   const { ready, settings } = useApp();
+  const { colors } = useTheme();
   const [tab, setTab] = useState<TabKey>('operar');
 
   if (!ready) return <Loader />;
@@ -23,7 +25,7 @@ function Root() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ flex: 1 }}>
         {tab === 'operar' ? <OperationScreen onGoToRates={() => setTab('tipos')} /> : null}
         {tab === 'tipos' ? <RatesScreen /> : null}
@@ -35,14 +37,24 @@ function Root() {
   );
 }
 
-export default function App() {
+function AppShell() {
+  const { scheme } = useTheme();
   return (
-    <SafeAreaProvider>
-      <StatusBar style="auto" />
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <AppProvider>
         <Root />
       </AppProvider>
-    </SafeAreaProvider>
+    </>
   );
 }
 
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppShell />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}

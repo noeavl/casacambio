@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Button as NativeButton, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -7,6 +7,7 @@ import {
   AmountInput,
   Button,
   Card,
+  Divider,
   EmptyState,
   Field,
   Row,
@@ -14,6 +15,8 @@ import {
   Segmented,
 } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useTheme } from '../state/ThemeContext';
+import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { AmountMode, ExchangeRate, Operation, OperationType } from '../types';
 import { quote } from '../utils/exchange';
 import { formatMoney, formatNumber, parseAmount, sanitizeAmountInput } from '../utils/format';
@@ -24,20 +27,38 @@ function RateChip({
   baseCurrency,
   type: opType,
   onPress,
+  styles,
 }: {
   rate: ExchangeRate;
   active: boolean;
   baseCurrency: string;
   type: OperationType;
   onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
 }) {
   const value = opType === 'BUY' ? rate.buy : rate.sell;
-  const label = `${rate.code} ${formatNumber(value, 4)} ${baseCurrency}/${rate.code}`;
-  return <NativeButton title={active ? `✓ ${label}` : label} onPress={onPress} />;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={[styles.chip, active && styles.chipActive]}
+    >
+      <Text style={[styles.chipCode, active && styles.chipTextActive]}>{rate.code}</Text>
+      <Text style={[styles.chipRate, active && styles.chipTextActive]}>
+        {formatNumber(value, 4)}
+      </Text>
+      <Text style={[styles.chipUnit, active && styles.chipUnitActive]}>
+        {baseCurrency}/{rate.code}
+      </Text>
+    </Pressable>
+  );
 }
 
 export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   const { settings, rates, registerOperation } = useApp();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const activeRates = useMemo(() => rates.filter((rate) => rate.active), [rates]);
 
@@ -105,7 +126,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
             title="Sin tipos de cambio activos"
             hint="Agrega al menos una divisa con su precio de compra y venta para poder operar."
           />
-          <Button label="Ir a tipos de cambio" onPress={onGoToRates} />
+          <Button label="Ir a tipos de cambio" onPress={onGoToRates} variant="outline" />
         </Card>
       </Screen>
     );
@@ -121,7 +142,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
           { value: 'SELL', label: 'Venta' },
         ]}
       />
-      <Text>
+      <Text style={styles.hint}>
         {isBuy
           ? `Recibes divisa del cliente y pagas en ${settings.baseCurrency}.`
           : `Entregas divisa al cliente y cobras en ${settings.baseCurrency}.`}
@@ -129,7 +150,11 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
 
       <View>
         <SectionLabel>Tipo de cambio</SectionLabel>
-        <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
           {activeRates.map((rate) => (
             <RateChip
               key={rate.id}
@@ -138,9 +163,10 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
               type={type}
               active={selectedRate?.id === rate.id}
               onPress={() => setRateId(rate.id)}
+              styles={styles}
             />
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       <Card>
@@ -152,12 +178,16 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
             { value: 'LOCAL', label: `Monto en ${settings.baseCurrency}` },
           ]}
         />
-        <AmountInput
-          label="Monto"
-          value={amountText}
-          onChangeText={(text) => setAmountText(sanitizeAmountInput(text))}
-          suffix={mode === 'FOREIGN' ? (selectedRate?.code ?? '') : settings.baseCurrency}
-        />
+        <View style={styles.amountBlock}>
+          <AmountInput
+            label="Monto"
+            value={amountText}
+            onChangeText={(text) => setAmountText(sanitizeAmountInput(text))}
+            suffix={mode === 'FOREIGN' ? (selectedRate?.code ?? '') : settings.baseCurrency}
+          />
+        </View>
+
+        <Divider />
 
         <Row
           label="Tipo de cambio aplicado"
@@ -173,15 +203,18 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
           value={`${isBuy ? '-' : '+'} ${formatMoney(result?.commissionAmount ?? 0, settings.baseCurrency, d)}`}
         />
 
+        <Divider />
+
         <Row
           label={isBuy ? 'Pagas al cliente' : 'Cobras al cliente'}
           value={formatMoney(result?.netLocal ?? 0, settings.baseCurrency, d)}
+          emphasis
         />
       </Card>
 
       <Card>
         <SectionLabel>Datos del recibo</SectionLabel>
-        <View>
+        <View style={styles.group}>
           <Field
             label="Cliente"
             value={customer}
@@ -210,3 +243,27 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   );
 }
 
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    hint: { ...type_.small, color: colors.textMuted, marginTop: -spacing.sm },
+    group: { gap: spacing.lg },
+    amountBlock: { marginTop: spacing.lg },
+    chipRow: { gap: spacing.sm, paddingRight: spacing.xl },
+    chip: {
+      minWidth: 104,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      gap: 2,
+    },
+    chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    chipCode: { ...type_.tiny, color: colors.textMuted },
+    chipRate: { fontSize: 18, fontWeight: '500', color: colors.text },
+    chipUnit: { ...type_.tiny, color: colors.textDim, fontSize: 9 },
+    chipTextActive: { color: colors.onAccent },
+    chipUnitActive: { color: colors.onAccent, opacity: 0.55 },
+  });
+}

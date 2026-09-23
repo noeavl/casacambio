@@ -1,33 +1,88 @@
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useTheme } from '../state/ThemeContext';
+import { spacing, type as type_, type Palette } from '../theme';
 
 export function Screen({
   title,
   subtitle,
   right,
   children,
+  scroll = true,
 }: {
   title: string;
   subtitle?: string;
   right?: ReactNode;
   children: ReactNode;
+  scroll?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+
+  const header = (
+    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+      <View style={styles.headerText}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      {right ? <View style={styles.headerRight}>{right}</View> : null}
+    </View>
+  );
+
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView keyboardShouldPersistTaps="handled">
-          <View>
-            <Text>{title}</Text>
-            {subtitle ? <Text>{subtitle}</Text> : null}
-            {right}
-          </View>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
+      {header}
+      {scroll ? (
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {children}
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      ) : (
+        <View style={[styles.flex, styles.content]}>{children}</View>
+      )}
+    </KeyboardAvoidingView>
   );
+}
+
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+    flex: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.lg,
+      gap: spacing.md,
+    },
+    headerText: { flex: 1, gap: 2 },
+    headerRight: { paddingBottom: 2 },
+    title: { ...type_.display, color: colors.text },
+    subtitle: { ...type_.small, color: colors.textMuted },
+    content: {
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.xxl,
+      gap: spacing.lg,
+    },
+  });
 }

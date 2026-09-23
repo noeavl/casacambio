@@ -1,14 +1,18 @@
-import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { Button, Card, Field, Muted, SectionLabel } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useTheme } from '../state/ThemeContext';
+import { spacing, type as type_, type Palette } from '../theme';
 import { parseAmount, sanitizeAmountInput } from '../utils/format';
 
 /** Configuración inicial: se muestra una sola vez, antes de operar. */
 export function SetupScreen() {
   const { settings, completeSetup } = useApp();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [businessName, setBusinessName] = useState(settings.businessName);
   const [branch, setBranch] = useState(settings.branch);
@@ -32,14 +36,16 @@ export function SetupScreen() {
 
   return (
     <Screen title="Configuración" subtitle="Parámetros de inicio de la casa de cambio">
-      <Text>
-        Estos datos encabezan cada recibo y definen cómo se calculan las operaciones. Podrás
-        cambiarlos después desde Ajustes.
-      </Text>
+      <View style={styles.intro}>
+        <Text style={styles.introText}>
+          Estos datos encabezan cada recibo y definen cómo se calculan las operaciones. Podrás
+          cambiarlos después desde Ajustes.
+        </Text>
+      </View>
 
       <Card>
         <SectionLabel>Identidad</SectionLabel>
-        <View>
+        <View style={styles.group}>
           <Field
             label="Nombre del negocio"
             value={businessName}
@@ -58,7 +64,7 @@ export function SetupScreen() {
 
       <Card>
         <SectionLabel>Operación</SectionLabel>
-        <View>
+        <View style={styles.group}>
           <Field
             label="Moneda de caja"
             value={baseCurrency}
@@ -89,10 +95,18 @@ export function SetupScreen() {
       </Card>
 
       <Button label="Comenzar a operar" onPress={handleStart} disabled={!canContinue} />
-      <Muted>
+      <Muted style={styles.note}>
         Se crearán dos tipos de cambio de ejemplo (USD y EUR) que puedes editar o eliminar.
       </Muted>
     </Screen>
   );
 }
 
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    intro: { paddingBottom: spacing.xs },
+    introText: { ...type_.small, color: colors.textMuted, lineHeight: 20 },
+    group: { gap: spacing.lg },
+    note: { textAlign: 'center' },
+  });
+}

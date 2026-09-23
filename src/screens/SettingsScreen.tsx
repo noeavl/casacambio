@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
-import { Button, Card, Field, Muted, Row, SectionLabel } from '../components/ui';
+import { Button, Card, Field, Muted, Row, SectionLabel, Segmented } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useTheme, type ThemePreference } from '../state/ThemeContext';
+import { spacing } from '../theme';
 import { buildFolio, parseAmount, sanitizeAmountInput } from '../utils/format';
 
 /** Módulo de configuración: parámetros de inicio, editables en cualquier momento. */
 export function SettingsScreen() {
   const { settings, operations, rates, updateSettings, resetAll } = useApp();
+  const { preference, setPreference } = useTheme();
+  const styles = useMemo(() => createStyles(), []);
 
   const [form, setForm] = useState({
     businessName: settings.businessName,
@@ -76,6 +80,19 @@ export function SettingsScreen() {
   return (
     <Screen title="Ajustes" subtitle="Parámetros de inicio y recibo">
       <Card>
+        <SectionLabel>Apariencia</SectionLabel>
+        <Segmented<ThemePreference>
+          value={preference}
+          onChange={setPreference}
+          options={[
+            { value: 'light', label: 'Claro' },
+            { value: 'dark', label: 'Oscuro' },
+            { value: 'system', label: 'Sistema' },
+          ]}
+        />
+      </Card>
+
+      <Card>
         <SectionLabel>Estado</SectionLabel>
         <Row label="Tipos de cambio" value={String(rates.length)} />
         <Row label="Operaciones registradas" value={String(operations.length)} />
@@ -87,7 +104,7 @@ export function SettingsScreen() {
 
       <Card>
         <SectionLabel>Datos del negocio</SectionLabel>
-        <View>
+        <View style={styles.group}>
           <Field label="Nombre" value={form.businessName} onChangeText={set('businessName')} />
           <Field label="Sucursal" value={form.branch} onChangeText={set('branch')} />
           <Field label="RFC / identificación fiscal" value={form.taxId} onChangeText={set('taxId')} autoCapitalize="characters" />
@@ -99,7 +116,7 @@ export function SettingsScreen() {
 
       <Card>
         <SectionLabel>Parámetros de operación</SectionLabel>
-        <View>
+        <View style={styles.group}>
           <Field
             label="Moneda de caja"
             value={form.baseCurrency}
@@ -127,7 +144,7 @@ export function SettingsScreen() {
 
       <Card>
         <SectionLabel>Recibo</SectionLabel>
-        <View>
+        <View style={styles.group}>
           <Field
             label="Prefijo de folio"
             value={form.receiptPrefix}
@@ -145,9 +162,15 @@ export function SettingsScreen() {
       </Card>
 
       <Button label="Guardar ajustes" onPress={handleSave} />
-      <Button label="Restablecer aplicación" onPress={handleReset} />
-      <Muted>Casa de Cambio · v1.0.0</Muted>
+      <Button label="Restablecer aplicación" onPress={handleReset} variant="danger" />
+      <Muted style={styles.version}>Casa de Cambio · v1.0.0</Muted>
     </Screen>
   );
 }
 
+function createStyles() {
+  return StyleSheet.create({
+    group: { gap: spacing.lg },
+    version: { textAlign: 'center' },
+  });
+}

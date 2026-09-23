@@ -1,3 +1,11 @@
+import { Platform } from 'react-native';
+
+export const monoFont = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'monospace',
+});
+
 /** Formatea un número con separador de miles y decimales fijos. */
 export function formatNumber(value: number, decimals = 2): string {
   const safe = Number.isFinite(value) ? value : 0;

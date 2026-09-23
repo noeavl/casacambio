@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, Text } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { Card, EmptyState, Muted, Segmented } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useTheme } from '../state/ThemeContext';
+import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { Operation, OperationType } from '../types';
 import { operationLabel } from '../utils/exchange';
 import { formatDateTime, formatMoney, formatNumber } from '../utils/format';
@@ -23,6 +25,8 @@ function isToday(iso: string): boolean {
 
 export function HistoryScreen() {
   const { settings, operations, removeOperation } = useApp();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [receipt, setReceipt] = useState<Operation | null>(null);
 
@@ -53,13 +57,26 @@ export function HistoryScreen() {
   return (
     <Screen title="Historial" subtitle={`${operations.length} operaciones registradas`}>
       <Card>
-        <Text>Resumen de hoy</Text>
-        <Text>Operaciones: {totals.count}</Text>
-        <Text>Pagado: {formatNumber(totals.paid, settings.decimals)}</Text>
-        <Text>Cobrado: {formatNumber(totals.charged, settings.decimals)}</Text>
-        <Text>
+        <Text style={styles.summaryTitle}>RESUMEN DE HOY</Text>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>OPERACIONES</Text>
+            <Text style={styles.summaryValue}>{totals.count}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>PAGADO</Text>
+            <Text style={styles.summaryValue}>{formatNumber(totals.paid, settings.decimals)}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>COBRADO</Text>
+            <Text style={styles.summaryValue}>
+              {formatNumber(totals.charged, settings.decimals)}
+            </Text>
+          </View>
+        </View>
+        <Muted style={styles.summaryFoot}>
           Saldo neto en caja: {formatMoney(totals.balance, settings.baseCurrency, settings.decimals)}
-        </Text>
+        </Muted>
       </Card>
 
       <Segmented<Filter>
@@ -88,16 +105,30 @@ export function HistoryScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Recibo ${operation.folio}`}
           >
-            <Card>
-              <Text>
-                {operationLabel(operation.type)} · {operation.folio}
-              </Text>
-              <Text>
-                {formatMoney(operation.foreignAmount, operation.currencyCode, settings.decimals)}{' '}
-                {operation.type === 'BUY' ? '→' : '←'}{' '}
-                {formatMoney(operation.netLocal, operation.baseCurrency, settings.decimals)}
-              </Text>
-              <Text>
+            <Card style={styles.item}>
+              <View style={styles.itemHead}>
+                <Text
+                  style={[
+                    styles.itemType,
+                    operation.type === 'BUY' ? styles.itemBuy : styles.itemSell,
+                  ]}
+                >
+                  {operationLabel(operation.type).toUpperCase()}
+                </Text>
+                <Text style={styles.itemFolio}>{operation.folio}</Text>
+              </View>
+
+              <View style={styles.itemBody}>
+                <Text style={styles.itemForeign}>
+                  {formatMoney(operation.foreignAmount, operation.currencyCode, settings.decimals)}
+                </Text>
+                <Text style={styles.itemArrow}>{operation.type === 'BUY' ? '→' : '←'}</Text>
+                <Text style={styles.itemLocal}>
+                  {formatMoney(operation.netLocal, operation.baseCurrency, settings.decimals)}
+                </Text>
+              </View>
+
+              <Text style={styles.itemMeta}>
                 {formatDateTime(operation.createdAt)} · TC {formatNumber(operation.rate, 4)}
                 {operation.customer ? ` · ${operation.customer}` : ''}
               </Text>
@@ -106,7 +137,7 @@ export function HistoryScreen() {
         ))
       )}
 
-      <Muted>Toca una operación para ver su recibo. Mantén pulsado para eliminarla.</Muted>
+      <Muted style={styles.legend}>Toca una operación para ver su recibo. Mantén pulsado para eliminarla.</Muted>
 
       <ReceiptModal
         operation={receipt}
@@ -118,3 +149,38 @@ export function HistoryScreen() {
   );
 }
 
+function createStyles(colors: Palette) {
+  return StyleSheet.create({
+    summaryTitle: { ...type_.section, color: colors.textDim, marginBottom: spacing.lg },
+    summaryRow: { flexDirection: 'row', gap: spacing.md },
+    summaryItem: { flex: 1, gap: 4 },
+    summaryLabel: { ...type_.tiny, color: colors.textDim, fontSize: 9 },
+    summaryValue: { fontSize: 20, fontWeight: '300', color: colors.text },
+    summaryFoot: { marginTop: spacing.md },
+
+    item: { gap: spacing.sm },
+    itemHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    itemType: {
+      ...type_.tiny,
+      fontSize: 9,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      borderRadius: radius.pill,
+      overflow: 'hidden',
+    },
+    itemBuy: { color: colors.onAccent, backgroundColor: colors.accent },
+    itemSell: {
+      color: colors.text,
+      backgroundColor: 'transparent',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.borderStrong,
+    },
+    itemFolio: { ...type_.tiny, color: colors.textDim },
+    itemBody: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    itemForeign: { fontSize: 16, color: colors.text, fontWeight: '400' },
+    itemArrow: { fontSize: 14, color: colors.textDim },
+    itemLocal: { fontSize: 16, color: colors.text, fontWeight: '500' },
+    itemMeta: { ...type_.small, color: colors.textDim, fontSize: 11 },
+    legend: { textAlign: 'center' },
+  });
+}
