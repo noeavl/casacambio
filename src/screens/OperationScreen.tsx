@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Button as NativeButton, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -7,7 +7,6 @@ import {
   AmountInput,
   Button,
   Card,
-  Divider,
   EmptyState,
   Field,
   Row,
@@ -15,7 +14,6 @@ import {
   Segmented,
 } from '../components/ui';
 import { useApp } from '../state/AppContext';
-import { colors, radius, spacing, type } from '../theme';
 import type { AmountMode, ExchangeRate, Operation, OperationType } from '../types';
 import { quote } from '../utils/exchange';
 import { formatMoney, formatNumber, parseAmount, sanitizeAmountInput } from '../utils/format';
@@ -34,22 +32,8 @@ function RateChip({
   onPress: () => void;
 }) {
   const value = opType === 'BUY' ? rate.buy : rate.sell;
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      style={[styles.chip, active && styles.chipActive]}
-    >
-      <Text style={[styles.chipCode, active && styles.chipTextActive]}>{rate.code}</Text>
-      <Text style={[styles.chipRate, active && styles.chipTextActive]}>
-        {formatNumber(value, 4)}
-      </Text>
-      <Text style={[styles.chipUnit, active && styles.chipUnitActive]}>
-        {baseCurrency}/{rate.code}
-      </Text>
-    </Pressable>
-  );
+  const label = `${rate.code} ${formatNumber(value, 4)} ${baseCurrency}/${rate.code}`;
+  return <NativeButton title={active ? `✓ ${label}` : label} onPress={onPress} />;
 }
 
 export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
@@ -121,7 +105,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
             title="Sin tipos de cambio activos"
             hint="Agrega al menos una divisa con su precio de compra y venta para poder operar."
           />
-          <Button label="Ir a tipos de cambio" onPress={onGoToRates} variant="outline" />
+          <Button label="Ir a tipos de cambio" onPress={onGoToRates} />
         </Card>
       </Screen>
     );
@@ -137,7 +121,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
           { value: 'SELL', label: 'Venta' },
         ]}
       />
-      <Text style={styles.hint}>
+      <Text>
         {isBuy
           ? `Recibes divisa del cliente y pagas en ${settings.baseCurrency}.`
           : `Entregas divisa al cliente y cobras en ${settings.baseCurrency}.`}
@@ -145,11 +129,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
 
       <View>
         <SectionLabel>Tipo de cambio</SectionLabel>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
+        <View>
           {activeRates.map((rate) => (
             <RateChip
               key={rate.id}
@@ -160,7 +140,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
               onPress={() => setRateId(rate.id)}
             />
           ))}
-        </ScrollView>
+        </View>
       </View>
 
       <Card>
@@ -172,16 +152,12 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
             { value: 'LOCAL', label: `Monto en ${settings.baseCurrency}` },
           ]}
         />
-        <View style={styles.amountBlock}>
-          <AmountInput
-            label="Monto"
-            value={amountText}
-            onChangeText={(text) => setAmountText(sanitizeAmountInput(text))}
-            suffix={mode === 'FOREIGN' ? (selectedRate?.code ?? '') : settings.baseCurrency}
-          />
-        </View>
-
-        <Divider />
+        <AmountInput
+          label="Monto"
+          value={amountText}
+          onChangeText={(text) => setAmountText(sanitizeAmountInput(text))}
+          suffix={mode === 'FOREIGN' ? (selectedRate?.code ?? '') : settings.baseCurrency}
+        />
 
         <Row
           label="Tipo de cambio aplicado"
@@ -197,18 +173,15 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
           value={`${isBuy ? '-' : '+'} ${formatMoney(result?.commissionAmount ?? 0, settings.baseCurrency, d)}`}
         />
 
-        <Divider />
-
         <Row
           label={isBuy ? 'Pagas al cliente' : 'Cobras al cliente'}
           value={formatMoney(result?.netLocal ?? 0, settings.baseCurrency, d)}
-          emphasis
         />
       </Card>
 
       <Card>
         <SectionLabel>Datos del recibo</SectionLabel>
-        <View style={styles.group}>
+        <View>
           <Field
             label="Cliente"
             value={customer}
@@ -237,25 +210,3 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  hint: { ...type.small, color: colors.textMuted, marginTop: -spacing.sm },
-  group: { gap: spacing.lg },
-  amountBlock: { marginTop: spacing.lg },
-  chipRow: { gap: spacing.sm, paddingRight: spacing.xl },
-  chip: {
-    minWidth: 104,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    gap: 2,
-  },
-  chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipCode: { ...type.tiny, color: colors.textMuted },
-  chipRate: { fontSize: 18, fontWeight: '500', color: colors.text },
-  chipUnit: { ...type.tiny, color: colors.textDim, fontSize: 9 },
-  chipTextActive: { color: colors.onAccent },
-  chipUnitActive: { color: 'rgba(0,0,0,0.55)' },
-});

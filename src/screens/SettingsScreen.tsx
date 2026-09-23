@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { Button, Card, Field, Muted, Row, SectionLabel } from '../components/ui';
 import { useApp } from '../state/AppContext';
-import { spacing } from '../theme';
 import { buildFolio, parseAmount, sanitizeAmountInput } from '../utils/format';
 
 /** Módulo de configuración: parámetros de inicio, editables en cualquier momento. */
@@ -88,7 +87,7 @@ export function SettingsScreen() {
 
       <Card>
         <SectionLabel>Datos del negocio</SectionLabel>
-        <View style={styles.group}>
+        <View>
           <Field label="Nombre" value={form.businessName} onChangeText={set('businessName')} />
           <Field label="Sucursal" value={form.branch} onChangeText={set('branch')} />
           <Field label="RFC / identificación fiscal" value={form.taxId} onChangeText={set('taxId')} autoCapitalize="characters" />
@@ -100,7 +99,7 @@ export function SettingsScreen() {
 
       <Card>
         <SectionLabel>Parámetros de operación</SectionLabel>
-        <View style={styles.group}>
+        <View>
           <Field
             label="Moneda de caja"
             value={form.baseCurrency}
@@ -128,7 +127,7 @@ export function SettingsScreen() {
 
       <Card>
         <SectionLabel>Recibo</SectionLabel>
-        <View style={styles.group}>
+        <View>
           <Field
             label="Prefijo de folio"
             value={form.receiptPrefix}
@@ -146,13 +145,9 @@ export function SettingsScreen() {
       </Card>
 
       <Button label="Guardar ajustes" onPress={handleSave} />
-      <Button label="Restablecer aplicación" onPress={handleReset} variant="danger" />
-      <Muted style={styles.version}>Casa de Cambio · v1.0.0</Muted>
+      <Button label="Restablecer aplicación" onPress={handleReset} />
+      <Muted>Casa de Cambio · v1.0.0</Muted>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  group: { gap: spacing.lg },
-  version: { textAlign: 'center' },
-});

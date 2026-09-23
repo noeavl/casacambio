@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { Button, Card, Field, Muted, SectionLabel } from '../components/ui';
 import { useApp } from '../state/AppContext';
-import { colors, spacing, type } from '../theme';
 import { parseAmount, sanitizeAmountInput } from '../utils/format';
 
 /** Configuración inicial: se muestra una sola vez, antes de operar. */
@@ -33,16 +32,14 @@ export function SetupScreen() {
 
   return (
     <Screen title="Configuración" subtitle="Parámetros de inicio de la casa de cambio">
-      <View style={styles.intro}>
-        <Text style={styles.introText}>
-          Estos datos encabezan cada recibo y definen cómo se calculan las operaciones. Podrás
-          cambiarlos después desde Ajustes.
-        </Text>
-      </View>
+      <Text>
+        Estos datos encabezan cada recibo y definen cómo se calculan las operaciones. Podrás
+        cambiarlos después desde Ajustes.
+      </Text>
 
       <Card>
         <SectionLabel>Identidad</SectionLabel>
-        <View style={styles.group}>
+        <View>
           <Field
             label="Nombre del negocio"
             value={businessName}
@@ -61,7 +58,7 @@ export function SetupScreen() {
 
       <Card>
         <SectionLabel>Operación</SectionLabel>
-        <View style={styles.group}>
+        <View>
           <Field
             label="Moneda de caja"
             value={baseCurrency}
@@ -92,16 +89,10 @@ export function SetupScreen() {
       </Card>
 
       <Button label="Comenzar a operar" onPress={handleStart} disabled={!canContinue} />
-      <Muted style={styles.note}>
+      <Muted>
         Se crearán dos tipos de cambio de ejemplo (USD y EUR) que puedes editar o eliminar.
       </Muted>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  intro: { paddingBottom: spacing.xs },
-  introText: { ...type.small, color: colors.textMuted, lineHeight: 20 },
-  group: { gap: spacing.lg },
-  note: { textAlign: 'center' },
-});

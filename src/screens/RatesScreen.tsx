@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Screen } from '../components/Screen';
 import { Button, Card, EmptyState, Field, Muted, SectionLabel } from '../components/ui';
 import { useApp } from '../state/AppContext';
-import { colors, radius, spacing, type } from '../theme';
 import type { ExchangeRate } from '../types';
 import { formatDateTime, formatNumber, parseAmount, sanitizeAmountInput } from '../utils/format';
 
@@ -34,7 +33,6 @@ function toDraft(rate: ExchangeRate): Draft {
 /** Módulo de tipos de cambio: alta, edición y baja de divisas. */
 export function RatesScreen() {
   const { settings, rates, addRate, updateRate, removeRate } = useApp();
-  const insets = useSafeAreaInsets();
 
   const [draft, setDraft] = useState<Draft | null>(null);
 
@@ -93,7 +91,7 @@ export function RatesScreen() {
     <Screen
       title="Tipos de cambio"
       subtitle={`Cotizados en ${settings.baseCurrency}`}
-      right={<Button label="Nuevo" onPress={openNew} variant="outline" style={styles.headerBtn} />}
+      right={<Button label="Nuevo" onPress={openNew} />}
     >
       {rates.length === 0 ? (
         <Card>
@@ -106,52 +104,28 @@ export function RatesScreen() {
       ) : (
         rates.map((rate) => (
           <Pressable key={rate.id} onPress={() => openEdit(rate)} accessibilityRole="button">
-            <Card style={[styles.rateCard, !rate.active && styles.rateCardOff]}>
-              <View style={styles.rateHead}>
-                <View>
-                  <Text style={styles.rateCode}>{rate.code}</Text>
-                  <Text style={styles.rateName}>{rate.name}</Text>
-                </View>
-                <Text style={[styles.badge, rate.active ? styles.badgeOn : styles.badgeOff]}>
-                  {rate.active ? 'ACTIVO' : 'INACTIVO'}
-                </Text>
-              </View>
-
-              <View style={styles.rateValues}>
-                <View style={styles.rateValue}>
-                  <Text style={styles.rateValueLabel}>COMPRA</Text>
-                  <Text style={styles.rateValueNumber}>{formatNumber(rate.buy, 4)}</Text>
-                </View>
-                <View style={styles.rateSeparator} />
-                <View style={styles.rateValue}>
-                  <Text style={styles.rateValueLabel}>VENTA</Text>
-                  <Text style={styles.rateValueNumber}>{formatNumber(rate.sell, 4)}</Text>
-                </View>
-              </View>
-
-              <Muted style={styles.updated}>Actualizado {formatDateTime(rate.updatedAt)}</Muted>
+            <Card>
+              <Text>
+                {rate.code} · {rate.name} · {rate.active ? 'Activo' : 'Inactivo'}
+              </Text>
+              <Text>Compra: {formatNumber(rate.buy, 4)}</Text>
+              <Text>Venta: {formatNumber(rate.sell, 4)}</Text>
+              <Muted>Actualizado {formatDateTime(rate.updatedAt)}</Muted>
             </Card>
           </Pressable>
         ))
       )}
 
-      <Muted style={styles.legend}>
+      <Muted>
         Compra: precio al que recibes la divisa. Venta: precio al que la entregas.
       </Muted>
 
-      <Modal
-        visible={draft !== null}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setDraft(null)}
-      >
-        <View style={styles.backdrop}>
-          <Pressable style={styles.backdropTap} onPress={() => setDraft(null)} />
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-            <View style={styles.grabber} />
+      <Modal visible={draft !== null} onRequestClose={() => setDraft(null)}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <ScrollView keyboardShouldPersistTaps="handled">
             <SectionLabel>{draft?.id ? 'Editar divisa' : 'Nueva divisa'}</SectionLabel>
 
-            <View style={styles.form}>
+            <View>
               <Field
                 label="Código"
                 value={draft?.code ?? ''}
@@ -168,7 +142,7 @@ export function RatesScreen() {
                 onChangeText={(text) => setDraft((d) => (d ? { ...d, name: text } : d))}
                 placeholder="Dólar estadounidense"
               />
-              <View style={styles.formRow}>
+              <View>
                 <Field
                   label={`Compra (${settings.baseCurrency})`}
                   value={draft?.buy ?? ''}
@@ -177,7 +151,6 @@ export function RatesScreen() {
                   }
                   keyboardType="decimal-pad"
                   placeholder="0.00"
-                  style={styles.formCol}
                 />
                 <Field
                   label={`Venta (${settings.baseCurrency})`}
@@ -187,87 +160,25 @@ export function RatesScreen() {
                   }
                   keyboardType="decimal-pad"
                   placeholder="0.00"
-                  style={styles.formCol}
                 />
               </View>
 
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Disponible para operar</Text>
+              <View>
+                <Text>Disponible para operar</Text>
                 <Switch
                   value={draft?.active ?? true}
                   onValueChange={(value) => setDraft((d) => (d ? { ...d, active: value } : d))}
-                  trackColor={{ false: colors.border, true: colors.accent }}
-                  thumbColor={colors.bg}
-                  ios_backgroundColor={colors.border}
                 />
               </View>
             </View>
 
-            <View style={styles.sheetActions}>
-              <Button label="Guardar" onPress={handleSave} style={styles.action} />
-              <Button
-                label="Cancelar"
-                onPress={() => setDraft(null)}
-                variant="outline"
-                style={styles.action}
-              />
-            </View>
-            {draft?.id ? <Button label="Eliminar" onPress={handleDelete} variant="danger" /> : null}
-          </View>
-        </View>
+            <Button label="Guardar" onPress={handleSave} />
+            <Button label="Cancelar" onPress={() => setDraft(null)} />
+            {draft?.id ? <Button label="Eliminar" onPress={handleDelete} /> : null}
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  headerBtn: { height: 36, paddingHorizontal: spacing.md },
-  rateCard: { gap: spacing.md },
-  rateCardOff: { opacity: 0.45 },
-  rateHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  rateCode: { fontSize: 20, fontWeight: '500', color: colors.text, letterSpacing: 1 },
-  rateName: { ...type.small, color: colors.textMuted },
-  badge: {
-    ...type.tiny,
-    fontSize: 9,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  badgeOn: { color: colors.onAccent, backgroundColor: colors.accent },
-  badgeOff: { color: colors.textDim, backgroundColor: colors.surfaceAlt },
-  rateValues: { flexDirection: 'row', alignItems: 'center' },
-  rateValue: { flex: 1, gap: 2 },
-  rateValueLabel: { ...type.tiny, color: colors.textDim, fontSize: 9 },
-  rateValueNumber: { fontSize: 22, fontWeight: '300', color: colors.text },
-  rateSeparator: { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: colors.border },
-  updated: { ...type.tiny, color: colors.textDim, fontSize: 10 },
-  legend: { textAlign: 'center' },
-
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  backdropTap: { flex: 1 },
-  sheet: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  grabber: {
-    alignSelf: 'center',
-    width: 36,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.borderStrong,
-  },
-  form: { gap: spacing.lg },
-  formRow: { flexDirection: 'row', gap: spacing.md },
-  formCol: { flex: 1 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  switchLabel: { ...type.body, color: colors.text },
-  sheetActions: { flexDirection: 'row', gap: spacing.sm },
-  action: { flex: 1 },
-});
