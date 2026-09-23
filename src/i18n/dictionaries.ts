@@ -8,6 +8,7 @@ const es = {
     buy: 'Compra',
     sell: 'Venta',
     back: 'Atrás',
+    more: 'Más',
   },
   tabs: {
     operar: 'Operar',
@@ -229,6 +230,7 @@ const en: Dictionary = {
     buy: 'Buy',
     sell: 'Sell',
     back: 'Back',
+    more: 'More',
   },
   tabs: {
     operar: 'Operate',

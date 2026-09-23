@@ -1,14 +1,24 @@
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type as type_, type Palette } from '../theme';
+import { Screen } from './Screen';
+import { Card, Divider, MenuRow } from './ui';
 
 export type TabKey = 'operar' | 'clientes' | 'tipos' | 'historial' | 'ajustes';
 
-const TAB_KEYS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes'];
+/**
+ * Orden de todas las pestañas de la app. Para agregar una nueva, solo
+ * súmala aquí (y su traducción en tabs.*): el TabBar decide solo cuáles
+ * caben abajo y cuáles pasan al menú "Más".
+ */
+const ALL_TABS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes'];
+
+/** Máximo de pestañas visibles a la vez, contando el botón "Más" si hace falta. */
+const MAX_VISIBLE_TABS = 4;
 
 export function TabBar({
   active,
@@ -21,10 +31,21 @@ export function TabBar({
   const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const hasOverflow = ALL_TABS.length > MAX_VISIBLE_TABS;
+  const primaryTabs = hasOverflow ? ALL_TABS.slice(0, MAX_VISIBLE_TABS - 1) : ALL_TABS;
+  const overflowTabs = hasOverflow ? ALL_TABS.slice(MAX_VISIBLE_TABS - 1) : [];
+  const isMoreActive = overflowTabs.includes(active);
+
+  const select = (key: TabKey) => {
+    onChange(key);
+    setMoreOpen(false);
+  };
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-      {TAB_KEYS.map((key) => {
+      {primaryTabs.map((key) => {
         const isActive = key === active;
         const label = t(`tabs.${key}`);
         return (
@@ -33,7 +54,7 @@ export function TabBar({
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={label}
-            onPress={() => onChange(key)}
+            onPress={() => select(key)}
             style={styles.tab}
           >
             <View style={[styles.dot, isActive && styles.dotActive]} />
@@ -41,6 +62,39 @@ export function TabBar({
           </Pressable>
         );
       })}
+
+      {hasOverflow ? (
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: isMoreActive }}
+          accessibilityLabel={t('common.more')}
+          onPress={() => setMoreOpen(true)}
+          style={styles.tab}
+        >
+          <View style={[styles.dot, isMoreActive && styles.dotActive]} />
+          <Text style={[styles.label, isMoreActive && styles.labelActive]}>
+            {t('common.more').toUpperCase()}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <Modal
+        visible={moreOpen}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setMoreOpen(false)}
+      >
+        <Screen title={t('common.more')} onBack={() => setMoreOpen(false)}>
+          <Card style={styles.menuCard}>
+            {overflowTabs.map((key, index) => (
+              <View key={key}>
+                {index > 0 ? <Divider style={styles.rowDivider} /> : null}
+                <MenuRow label={t(`tabs.${key}`)} onPress={() => select(key)} />
+              </View>
+            ))}
+          </Card>
+        </Screen>
+      </Modal>
     </View>
   );
 }
@@ -65,5 +119,7 @@ function createStyles(colors: Palette) {
     dotActive: { backgroundColor: colors.accent },
     label: { ...type_.tiny, color: colors.textDim, fontSize: 10 },
     labelActive: { color: colors.text },
+    menuCard: { padding: 0 },
+    rowDivider: { marginVertical: 0, marginHorizontal: 0 },
   });
 }
