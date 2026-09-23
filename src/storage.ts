@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { ExchangeRate, Operation, Settings } from './types';
+import type { Customer, ExchangeRate, Operation, Settings } from './types';
 import { uid } from './utils/format';
 
 const KEYS = {
   settings: '@casacambio/settings',
   rates: '@casacambio/rates',
   operations: '@casacambio/operations',
+  customers: '@casacambio/customers',
 } as const;
 
 export const defaultSettings: Settings = {
@@ -61,9 +62,12 @@ export const storage = {
   loadOperations: () => readJSON<Operation[]>(KEYS.operations, []),
   saveOperations: (operations: Operation[]) => writeJSON(KEYS.operations, operations),
 
+  loadCustomers: () => readJSON<Customer[]>(KEYS.customers, []),
+  saveCustomers: (customers: Customer[]) => writeJSON(KEYS.customers, customers),
+
   clearAll: async () => {
     try {
-      await AsyncStorage.multiRemove([KEYS.settings, KEYS.rates, KEYS.operations]);
+      await AsyncStorage.multiRemove([KEYS.settings, KEYS.rates, KEYS.operations, KEYS.customers]);
     } catch {
       // ignorado a propósito
     }

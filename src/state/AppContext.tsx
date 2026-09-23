@@ -9,7 +9,7 @@ import {
 } from 'react';
 
 import { defaultRates, defaultSettings, storage } from '../storage';
-import type { ExchangeRate, Operation, Settings } from '../types';
+import type { Customer, ExchangeRate, Operation, Settings } from '../types';
 import { buildFolio, uid } from '../utils/format';
 
 type NewOperation = Omit<Operation, 'id' | 'folio' | 'createdAt'>;
@@ -19,6 +19,7 @@ interface AppContextValue {
   settings: Settings;
   rates: ExchangeRate[];
   operations: Operation[];
+  customers: Customer[];
   updateSettings: (patch: Partial<Settings>) => void;
   completeSetup: (patch: Partial<Settings>) => void;
   addRate: (rate: Omit<ExchangeRate, 'id' | 'updatedAt'>) => void;
@@ -26,6 +27,9 @@ interface AppContextValue {
   removeRate: (id: string) => void;
   registerOperation: (operation: NewOperation) => Operation;
   removeOperation: (id: string) => void;
+  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Customer;
+  updateCustomer: (id: string, patch: Partial<Omit<Customer, 'id'>>) => void;
+  removeCustomer: (id: string) => void;
   resetAll: () => void;
 }
 
@@ -36,19 +40,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [loadedSettings, loadedRates, loadedOperations] = await Promise.all([
+      const [loadedSettings, loadedRates, loadedOperations, loadedCustomers] = await Promise.all([
         storage.loadSettings(),
         storage.loadRates(),
         storage.loadOperations(),
+        storage.loadCustomers(),
       ]);
       if (!alive) return;
       setSettings(loadedSettings);
       setRates(loadedRates);
       setOperations(loadedOperations);
+      setCustomers(loadedCustomers);
       setReady(true);
     })();
     return () => {
@@ -147,11 +154,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const addCustomer = useCallback((customer: Omit<Customer, 'id' | 'createdAt'>): Customer => {
+    const record: Customer = { ...customer, id: uid('cus'), createdAt: new Date().toISOString() };
+    setCustomers((current) => {
+      const next = [...current, record];
+      void storage.saveCustomers(next);
+      return next;
+    });
+    return record;
+  }, []);
+
+  const updateCustomer = useCallback((id: string, patch: Partial<Omit<Customer, 'id'>>) => {
+    setCustomers((current) => {
+      const next = current.map((customer) =>
+        customer.id === id ? { ...customer, ...patch } : customer,
+      );
+      void storage.saveCustomers(next);
+      return next;
+    });
+  }, []);
+
+  const removeCustomer = useCallback((id: string) => {
+    setCustomers((current) => {
+      const next = current.filter((customer) => customer.id !== id);
+      void storage.saveCustomers(next);
+      return next;
+    });
+  }, []);
+
   const resetAll = useCallback(() => {
     void storage.clearAll();
     setSettings(defaultSettings);
     setRates([]);
     setOperations([]);
+    setCustomers([]);
   }, []);
 
   const value = useMemo<AppContextValue>(
@@ -160,6 +196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settings,
       rates,
       operations,
+      customers,
       updateSettings,
       completeSetup,
       addRate,
@@ -167,6 +204,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeRate,
       registerOperation,
       removeOperation,
+      addCustomer,
+      updateCustomer,
+      removeCustomer,
       resetAll,
     }),
     [
@@ -174,6 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settings,
       rates,
       operations,
+      customers,
       updateSettings,
       completeSetup,
       addRate,
@@ -181,6 +222,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeRate,
       registerOperation,
       removeOperation,
+      addCustomer,
+      updateCustomer,
+      removeCustomer,
       resetAll,
     ],
   );

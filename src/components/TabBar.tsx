@@ -6,9 +6,9 @@ import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type as type_, type Palette } from '../theme';
 
-export type TabKey = 'operar' | 'tipos' | 'historial' | 'ajustes';
+export type TabKey = 'operar' | 'clientes' | 'tipos' | 'historial' | 'ajustes';
 
-const TAB_KEYS: TabKey[] = ['operar', 'tipos', 'historial', 'ajustes'];
+const TAB_KEYS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes'];
 
 export function TabBar({
   active,

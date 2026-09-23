@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { TabBar, type TabKey } from './src/components/TabBar';
 import { Loader } from './src/components/ui';
+import { CustomersScreen } from './src/screens/CustomersScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { OperationScreen } from './src/screens/OperationScreen';
 import { RatesScreen } from './src/screens/RatesScreen';
@@ -29,6 +30,7 @@ function Root() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ flex: 1 }}>
         {tab === 'operar' ? <OperationScreen onGoToRates={() => setTab('tipos')} /> : null}
+        {tab === 'clientes' ? <CustomersScreen /> : null}
         {tab === 'tipos' ? <RatesScreen /> : null}
         {tab === 'historial' ? <HistoryScreen /> : null}
         {tab === 'ajustes' ? <SettingsScreen /> : null}

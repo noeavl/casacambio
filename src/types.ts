@@ -41,6 +41,17 @@ export interface ExchangeRate {
   updatedAt: string;
 }
 
+/** Cliente registrado, para agilizar la captura de operaciones. */
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  /** Identificación oficial: INE, pasaporte, etc. */
+  document: string;
+  notes: string;
+  createdAt: string;
+}
+
 /**
  * COMPRA: el cliente entrega divisa y recibe moneda local.
  * VENTA:  el cliente recibe divisa y entrega moneda local.
