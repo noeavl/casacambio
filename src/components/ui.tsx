@@ -300,9 +300,6 @@ function createStyles(colors: Palette) {
 
     card: {
       backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
       padding: spacing.lg,
     },
     divider: {

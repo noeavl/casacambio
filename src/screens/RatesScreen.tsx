@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '../components/Screen';
-import { Button, Card, EmptyState, Field, Muted, SectionLabel } from '../components/ui';
+import { Button, Card, EmptyState, Field, Muted } from '../components/ui';
 import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
@@ -39,12 +38,12 @@ export function RatesScreen() {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const insets = useSafeAreaInsets();
 
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const openNew = () => setDraft({ ...emptyDraft });
   const openEdit = (rate: ExchangeRate) => setDraft(toDraft(rate));
+  const closeDraft = () => setDraft(null);
 
   const handleSave = () => {
     if (!draft) return;
@@ -75,7 +74,7 @@ export function RatesScreen() {
     const payload = { code, name: draft.name.trim() || code, buy, sell, active: draft.active };
     if (draft.id) updateRate(draft.id, payload);
     else addRate(payload);
-    setDraft(null);
+    closeDraft();
   };
 
   const handleDelete = () => {
@@ -88,7 +87,7 @@ export function RatesScreen() {
         style: 'destructive',
         onPress: () => {
           removeRate(id);
-          setDraft(null);
+          closeDraft();
         },
       },
     ]);
@@ -151,15 +150,11 @@ export function RatesScreen() {
       <Modal
         visible={draft !== null}
         animationType="slide"
-        transparent
-        onRequestClose={() => setDraft(null)}
+        presentationStyle="fullScreen"
+        onRequestClose={closeDraft}
       >
-        <View style={styles.backdrop}>
-          <Pressable style={styles.backdropTap} onPress={() => setDraft(null)} />
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-            <View style={styles.grabber} />
-            <SectionLabel>{draft?.id ? t('rates.editTitle') : t('rates.newTitle')}</SectionLabel>
-
+        <Screen title={draft?.id ? t('rates.editTitle') : t('rates.newTitle')} onBack={closeDraft}>
+          <Card>
             <View style={styles.form}>
               <Field
                 label={t('rates.codeLabel')}
@@ -211,21 +206,14 @@ export function RatesScreen() {
                 />
               </View>
             </View>
+          </Card>
 
-            <View style={styles.sheetActions}>
-              <Button label={t('common.save')} onPress={handleSave} style={styles.action} />
-              <Button
-                label={t('common.cancel')}
-                onPress={() => setDraft(null)}
-                variant="outline"
-                style={styles.action}
-              />
-            </View>
-            {draft?.id ? (
-              <Button label={t('rates.deleteButton')} onPress={handleDelete} variant="danger" />
-            ) : null}
-          </View>
-        </View>
+          <Button label={t('common.save')} onPress={handleSave} />
+          <Button label={t('common.cancel')} onPress={closeDraft} variant="outline" />
+          {draft?.id ? (
+            <Button label={t('rates.deleteButton')} onPress={handleDelete} variant="danger" />
+          ) : null}
+        </Screen>
       </Modal>
     </Screen>
   );
@@ -257,30 +245,10 @@ function createStyles(colors: Palette) {
     updated: { ...type_.tiny, color: colors.textDim, fontSize: 10 },
     legend: { textAlign: 'center' },
 
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-    backdropTap: { flex: 1 },
-    sheet: {
-      backgroundColor: colors.bg,
-      borderTopLeftRadius: radius.lg,
-      borderTopRightRadius: radius.lg,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.borderStrong,
-      padding: spacing.xl,
-      gap: spacing.lg,
-    },
-    grabber: {
-      alignSelf: 'center',
-      width: 36,
-      height: 3,
-      borderRadius: 0,
-      backgroundColor: colors.borderStrong,
-    },
     form: { gap: spacing.lg },
     formRow: { flexDirection: 'row', gap: spacing.md },
     formCol: { flex: 1 },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     switchLabel: { ...type_.body, color: colors.text },
-    sheetActions: { flexDirection: 'row', gap: spacing.sm },
-    action: { flex: 1 },
   });
 }
