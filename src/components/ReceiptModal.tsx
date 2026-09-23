@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { Operation, Settings } from '../types';
@@ -22,6 +23,7 @@ export function ReceiptModal({
   onClose: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
@@ -30,9 +32,9 @@ export function ReceiptModal({
     if (!operation || busy) return;
     setBusy(true);
     try {
-      await Print.printAsync({ html: receiptHTML(operation, settings) });
+      await Print.printAsync({ html: receiptHTML(operation, settings, t) });
     } catch {
-      Alert.alert('Impresión', 'No fue posible abrir el diálogo de impresión en este dispositivo.');
+      Alert.alert(t('receipt.printErrorTitle'), t('receipt.printErrorMessage'));
     } finally {
       setBusy(false);
     }
@@ -42,14 +44,14 @@ export function ReceiptModal({
     if (!operation || busy) return;
     setBusy(true);
     try {
-      const { uri } = await Print.printToFileAsync({ html: receiptHTML(operation, settings) });
+      const { uri } = await Print.printToFileAsync({ html: receiptHTML(operation, settings, t) });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
       } else {
-        Alert.alert('Recibo guardado', uri);
+        Alert.alert(t('receipt.savedTitle'), uri);
       }
     } catch {
-      Alert.alert('Recibo', 'No fue posible generar el PDF del recibo.');
+      Alert.alert(t('receipt.shareErrorTitle'), t('receipt.shareErrorMessage'));
     } finally {
       setBusy(false);
     }
@@ -58,10 +60,14 @@ export function ReceiptModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <Pressable style={styles.backdropTap} onPress={onClose} accessibilityLabel="Cerrar recibo" />
+        <Pressable
+          style={styles.backdropTap}
+          onPress={onClose}
+          accessibilityLabel={t('receipt.closeAccessibility')}
+        />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <View style={styles.grabber} />
-          <Text style={styles.heading}>RECIBO</Text>
+          <Text style={styles.heading}>{t('receipt.heading')}</Text>
 
           <ScrollView
             style={styles.scroll}
@@ -72,9 +78,9 @@ export function ReceiptModal({
           </ScrollView>
 
           <View style={styles.actions}>
-            <Button label="Imprimir" onPress={handlePrint} variant="primary" style={styles.action} />
-            <Button label="PDF" onPress={handleShare} variant="outline" style={styles.action} />
-            <Button label="Cerrar" onPress={onClose} variant="ghost" style={styles.action} />
+            <Button label={t('receipt.printButton')} onPress={handlePrint} variant="primary" style={styles.action} />
+            <Button label={t('receipt.pdfButton')} onPress={handleShare} variant="outline" style={styles.action} />
+            <Button label={t('receipt.closeButton')} onPress={onClose} variant="ghost" style={styles.action} />
           </View>
         </View>
       </View>

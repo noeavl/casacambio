@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type Palette } from '../theme';
 import type { Operation, Settings } from '../types';
 import { operationLabel } from '../utils/exchange';
 import { formatDate, formatMoney, formatNumber, formatTime, monoFont } from '../utils/format';
+
+type T = (key: Parameters<ReturnType<typeof useLanguage>['t']>[0], vars?: Record<string, string | number>) => string;
 
 const DASHES = '- '.repeat(40);
 
@@ -36,8 +39,8 @@ function Line({
   );
 }
 
-/** Líneas del recibo comunes a la vista en pantalla y a la impresión. */
-export function receiptLines(operation: Operation, settings: Settings) {
+/** Líneas del recibo comunes a la vista en pantalla y a la impresión. Función pura: recibe `t` como parámetro. */
+export function receiptLines(operation: Operation, settings: Settings, t: T) {
   const d = settings.decimals;
   const isBuy = operation.type === 'BUY';
   const foreign = formatMoney(operation.foreignAmount, operation.currencyCode, d);
@@ -45,32 +48,51 @@ export function receiptLines(operation: Operation, settings: Settings) {
 
   return {
     isBuy,
+    heading: t('receipt.operationHeading', {
+      type: operationLabel(operation.type, t).toUpperCase(),
+      code: operation.currencyCode,
+    }),
+    head: [
+      settings.branch ? t('receipt.branchPrefix', { branch: settings.branch }) : '',
+      settings.address,
+      settings.phone ? t('receipt.phonePrefix', { phone: settings.phone }) : '',
+      settings.taxId ? t('receipt.taxIdPrefix', { taxId: settings.taxId }) : '',
+    ].filter(Boolean),
     detail: [
-      { label: 'Folio', value: operation.folio },
-      { label: 'Fecha', value: formatDate(operation.createdAt) },
-      { label: 'Hora', value: formatTime(operation.createdAt) },
-      { label: 'Operador', value: operation.operator || '—' },
-      { label: 'Cliente', value: operation.customer || 'Público en general' },
+      { label: t('receipt.folioLabel'), value: operation.folio },
+      { label: t('receipt.dateLabel'), value: formatDate(operation.createdAt) },
+      { label: t('receipt.timeLabel'), value: formatTime(operation.createdAt) },
+      { label: t('receipt.operatorLabel'), value: operation.operator || '—' },
+      {
+        label: t('receipt.customerLabel'),
+        value: operation.customer || t('receipt.customerFallback'),
+      },
     ],
     amounts: [
       {
-        label: 'Tipo de cambio',
+        label: t('receipt.exchangeRateLabel'),
         value: `${formatNumber(operation.rate, 4)} ${operation.baseCurrency}/${operation.currencyCode}`,
       },
-      { label: 'Divisa', value: `${operation.currencyCode} · ${operation.currencyName}` },
       {
-        label: 'Monto en divisa',
+        label: t('receipt.currencyLabel'),
+        value: `${operation.currencyCode} · ${operation.currencyName}`,
+      },
+      {
+        label: t('receipt.foreignAmountLabel'),
         value: formatMoney(operation.foreignAmount, operation.currencyCode, d),
       },
-      { label: 'Subtotal', value: formatMoney(operation.grossLocal, operation.baseCurrency, d) },
       {
-        label: `Comisión (${formatNumber(operation.commissionPercent, 2)}%)`,
+        label: t('receipt.subtotalLabel'),
+        value: formatMoney(operation.grossLocal, operation.baseCurrency, d),
+      },
+      {
+        label: t('receipt.commissionLabel', { percent: formatNumber(operation.commissionPercent, 2) }),
         value: `${isBuy ? '-' : '+'} ${formatMoney(operation.commissionAmount, operation.baseCurrency, d)}`,
       },
     ],
     gives: isBuy ? foreign : local,
     gets: isBuy ? local : foreign,
-    totalLabel: isBuy ? 'TOTAL A PAGAR AL CLIENTE' : 'TOTAL A COBRAR AL CLIENTE',
+    totalLabel: isBuy ? t('receipt.totalPay') : t('receipt.totalCharge'),
     total: local,
   };
 }
@@ -78,21 +100,21 @@ export function receiptLines(operation: Operation, settings: Settings) {
 /** Recibo tal como se imprime en pantalla: papel blanco, siempre, con o sin tema oscuro. */
 export function Receipt({ operation, settings }: { operation: Operation; settings: Settings }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const data = receiptLines(operation, settings);
+  const data = receiptLines(operation, settings, t);
 
   return (
     <View style={styles.paper}>
       <Text style={styles.business}>{settings.businessName.toUpperCase()}</Text>
-      {settings.branch ? <Text style={styles.centered}>Sucursal {settings.branch}</Text> : null}
-      {settings.address ? <Text style={styles.centered}>{settings.address}</Text> : null}
-      {settings.phone ? <Text style={styles.centered}>Tel. {settings.phone}</Text> : null}
-      {settings.taxId ? <Text style={styles.centered}>RFC {settings.taxId}</Text> : null}
+      {data.head.map((line) => (
+        <Text key={line} style={styles.centered}>
+          {line}
+        </Text>
+      ))}
 
       <Dashed styles={styles} />
-      <Text style={styles.operation}>
-        {operationLabel(operation.type).toUpperCase()} DE {operation.currencyCode}
-      </Text>
+      <Text style={styles.operation}>{data.heading}</Text>
       <Dashed styles={styles} />
 
       {data.detail.map((item) => (
@@ -107,8 +129,8 @@ export function Receipt({ operation, settings }: { operation: Operation; setting
 
       <Dashed styles={styles} />
 
-      <Line label="El cliente entrega" value={data.gives} styles={styles} />
-      <Line label="El cliente recibe" value={data.gets} styles={styles} />
+      <Line label={t('receipt.givesLabel')} value={data.gives} styles={styles} />
+      <Line label={t('receipt.getsLabel')} value={data.gets} styles={styles} />
 
       <Dashed styles={styles} />
 
@@ -124,17 +146,17 @@ export function Receipt({ operation, settings }: { operation: Operation; setting
 
       <Dashed styles={styles} />
       <Text style={styles.signatureLine}>_____________________________</Text>
-      <Text style={styles.centered}>Firma del cliente</Text>
+      <Text style={styles.centered}>{t('receipt.signature')}</Text>
 
       {settings.receiptFooter ? <Text style={styles.footer}>{settings.receiptFooter}</Text> : null}
-      <Text style={styles.disclaimer}>Comprobante interno de operación</Text>
+      <Text style={styles.disclaimer}>{t('receipt.disclaimer')}</Text>
     </View>
   );
 }
 
-/** Versión HTML del mismo recibo, para impresión física o PDF. */
-export function receiptHTML(operation: Operation, settings: Settings): string {
-  const data = receiptLines(operation, settings);
+/** Versión HTML del mismo recibo, para impresión física o PDF. Función pura: recibe `t` como parámetro. */
+export function receiptHTML(operation: Operation, settings: Settings, t: T): string {
+  const data = receiptLines(operation, settings, t);
   const esc = (value: string) =>
     value
       .replace(/&/g, '&amp;')
@@ -144,15 +166,7 @@ export function receiptHTML(operation: Operation, settings: Settings): string {
   const line = (label: string, value: string) =>
     `<div class="line"><span>${esc(label)}</span><span>${esc(value)}</span></div>`;
 
-  const head = [
-    settings.branch ? `Sucursal ${settings.branch}` : '',
-    settings.address,
-    settings.phone ? `Tel. ${settings.phone}` : '',
-    settings.taxId ? `RFC ${settings.taxId}` : '',
-  ]
-    .filter(Boolean)
-    .map((text) => `<div class="c">${esc(text)}</div>`)
-    .join('');
+  const head = data.head.map((text) => `<div class="c">${esc(text)}</div>`).join('');
 
   return `<!doctype html>
 <html><head><meta charset="utf-8" />
@@ -178,23 +192,23 @@ export function receiptHTML(operation: Operation, settings: Settings): string {
   <div class="biz">${esc(settings.businessName.toUpperCase())}</div>
   ${head}
   <div class="dash"></div>
-  <div class="op">${esc(operationLabel(operation.type).toUpperCase())} DE ${esc(operation.currencyCode)}</div>
+  <div class="op">${esc(data.heading)}</div>
   <div class="dash"></div>
   ${data.detail.map((item) => line(item.label, item.value)).join('')}
   <div class="dash"></div>
   ${data.amounts.map((item) => line(item.label, item.value)).join('')}
   <div class="dash"></div>
-  ${line('El cliente entrega', data.gives)}
-  ${line('El cliente recibe', data.gets)}
+  ${line(t('receipt.givesLabel'), data.gives)}
+  ${line(t('receipt.getsLabel'), data.gets)}
   <div class="dash"></div>
   <div class="total-label">${esc(data.totalLabel)}</div>
   <div class="total">${esc(data.total)}</div>
   ${operation.note ? `<div class="dash"></div><div class="note">${esc(operation.note)}</div>` : ''}
   <div class="dash"></div>
   <div class="sign">_____________________________</div>
-  <div class="c">Firma del cliente</div>
+  <div class="c">${esc(t('receipt.signature'))}</div>
   ${settings.receiptFooter ? `<div class="foot">${esc(settings.receiptFooter)}</div>` : ''}
-  <div class="small">Comprobante interno de operación</div>
+  <div class="small">${esc(t('receipt.disclaimer'))}</div>
 </div></body></html>`;
 }
 

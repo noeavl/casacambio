@@ -4,6 +4,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { Screen } from '../components/Screen';
 import { Button, Card, Field, Muted, Row, SectionLabel, Segmented } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useLanguage, type LanguagePreference } from '../state/LanguageContext';
 import { useTheme, type ThemePreference } from '../state/ThemeContext';
 import { spacing } from '../theme';
 import { buildFolio, parseAmount, sanitizeAmountInput } from '../utils/format';
@@ -11,7 +12,8 @@ import { buildFolio, parseAmount, sanitizeAmountInput } from '../utils/format';
 /** Módulo de configuración: parámetros de inicio, editables en cualquier momento. */
 export function SettingsScreen() {
   const { settings, operations, rates, updateSettings, resetAll } = useApp();
-  const { preference, setPreference } = useTheme();
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
+  const { preference: languagePreference, setPreference: setLanguagePreference, t } = useLanguage();
   const styles = useMemo(() => createStyles(), []);
 
   const [form, setForm] = useState({
@@ -63,97 +65,116 @@ export function SettingsScreen() {
       decimals,
       receiptFooter: form.receiptFooter.trim(),
     });
-    Alert.alert('Ajustes', 'Los parámetros se guardaron correctamente.');
+    Alert.alert(t('settings.saveAlertTitle'), t('settings.saveAlertMessage'));
   };
 
   const handleReset = () => {
-    Alert.alert(
-      'Restablecer aplicación',
-      'Se borrarán los ajustes, los tipos de cambio y todas las operaciones registradas. Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Borrar todo', style: 'destructive', onPress: resetAll },
-      ],
-    );
+    Alert.alert(t('settings.resetAlertTitle'), t('settings.resetAlertMessage'), [
+      { text: t('settings.resetCancel'), style: 'cancel' },
+      { text: t('settings.resetConfirm'), style: 'destructive', onPress: resetAll },
+    ]);
   };
 
   return (
-    <Screen title="Ajustes" subtitle="Parámetros de inicio y recibo">
+    <Screen title={t('settings.title')} subtitle={t('settings.subtitle')}>
       <Card>
-        <SectionLabel>Apariencia</SectionLabel>
+        <SectionLabel>{t('settings.appearanceSection')}</SectionLabel>
         <Segmented<ThemePreference>
-          value={preference}
-          onChange={setPreference}
+          value={themePreference}
+          onChange={setThemePreference}
           options={[
-            { value: 'light', label: 'Claro' },
-            { value: 'dark', label: 'Oscuro' },
-            { value: 'system', label: 'Sistema' },
+            { value: 'light', label: t('settings.themeLight') },
+            { value: 'dark', label: t('settings.themeDark') },
+            { value: 'system', label: t('settings.themeSystem') },
           ]}
         />
       </Card>
 
       <Card>
-        <SectionLabel>Estado</SectionLabel>
-        <Row label="Tipos de cambio" value={String(rates.length)} />
-        <Row label="Operaciones registradas" value={String(operations.length)} />
+        <SectionLabel>{t('settings.languageSection')}</SectionLabel>
+        <Segmented<LanguagePreference>
+          value={languagePreference}
+          onChange={setLanguagePreference}
+          options={[
+            { value: 'es', label: 'Español' },
+            { value: 'en', label: 'English' },
+            { value: 'system', label: t('settings.languageSystem') },
+          ]}
+        />
+      </Card>
+
+      <Card>
+        <SectionLabel>{t('settings.statusSection')}</SectionLabel>
+        <Row label={t('settings.ratesCountLabel')} value={String(rates.length)} />
+        <Row label={t('settings.operationsCountLabel')} value={String(operations.length)} />
         <Row
-          label="Siguiente folio"
+          label={t('settings.nextFolioLabel')}
           value={buildFolio(settings.receiptPrefix, settings.nextFolio)}
         />
       </Card>
 
       <Card>
-        <SectionLabel>Datos del negocio</SectionLabel>
+        <SectionLabel>{t('settings.businessSection')}</SectionLabel>
         <View style={styles.group}>
-          <Field label="Nombre" value={form.businessName} onChangeText={set('businessName')} />
-          <Field label="Sucursal" value={form.branch} onChangeText={set('branch')} />
-          <Field label="RFC / identificación fiscal" value={form.taxId} onChangeText={set('taxId')} autoCapitalize="characters" />
-          <Field label="Dirección" value={form.address} onChangeText={set('address')} />
-          <Field label="Teléfono" value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
-          <Field label="Operador / cajero" value={form.operator} onChangeText={set('operator')} />
+          <Field label={t('settings.nameLabel')} value={form.businessName} onChangeText={set('businessName')} />
+          <Field label={t('settings.branchLabel')} value={form.branch} onChangeText={set('branch')} />
+          <Field
+            label={t('settings.taxIdLabel')}
+            value={form.taxId}
+            onChangeText={set('taxId')}
+            autoCapitalize="characters"
+          />
+          <Field label={t('settings.addressLabel')} value={form.address} onChangeText={set('address')} />
+          <Field
+            label={t('settings.phoneLabel')}
+            value={form.phone}
+            onChangeText={set('phone')}
+            keyboardType="phone-pad"
+          />
+          <Field label={t('settings.operatorLabel')} value={form.operator} onChangeText={set('operator')} />
         </View>
       </Card>
 
       <Card>
-        <SectionLabel>Parámetros de operación</SectionLabel>
+        <SectionLabel>{t('settings.operationSection')}</SectionLabel>
         <View style={styles.group}>
           <Field
-            label="Moneda de caja"
+            label={t('settings.baseCurrencyLabel')}
             value={form.baseCurrency}
             onChangeText={(text) => set('baseCurrency')(text.toUpperCase().slice(0, 4))}
             autoCapitalize="characters"
             maxLength={4}
-            hint="Cambiarla no recalcula operaciones ya registradas."
+            hint={t('settings.baseCurrencyHint')}
           />
           <Field
-            label="Comisión por operación (%)"
+            label={t('settings.commissionLabel')}
             value={form.commissionPercent}
             onChangeText={(text) => set('commissionPercent')(sanitizeAmountInput(text))}
             keyboardType="decimal-pad"
           />
           <Field
-            label="Decimales"
+            label={t('settings.decimalsLabel')}
             value={form.decimals}
             onChangeText={(text) => set('decimals')(text.replace(/[^0-9]/g, '').slice(0, 1))}
             keyboardType="number-pad"
             maxLength={1}
-            hint="Entre 0 y 4 decimales en los importes."
+            hint={t('settings.decimalsHint')}
           />
         </View>
       </Card>
 
       <Card>
-        <SectionLabel>Recibo</SectionLabel>
+        <SectionLabel>{t('settings.receiptSection')}</SectionLabel>
         <View style={styles.group}>
           <Field
-            label="Prefijo de folio"
+            label={t('settings.receiptPrefixLabel')}
             value={form.receiptPrefix}
             onChangeText={(text) => set('receiptPrefix')(text.toUpperCase().slice(0, 6))}
             autoCapitalize="characters"
             maxLength={6}
           />
           <Field
-            label="Leyenda al pie"
+            label={t('settings.receiptFooterLabel')}
             value={form.receiptFooter}
             onChangeText={set('receiptFooter')}
             multiline
@@ -161,9 +182,9 @@ export function SettingsScreen() {
         </View>
       </Card>
 
-      <Button label="Guardar ajustes" onPress={handleSave} />
-      <Button label="Restablecer aplicación" onPress={handleReset} variant="danger" />
-      <Muted style={styles.version}>Casa de Cambio · v1.0.0</Muted>
+      <Button label={t('settings.saveButton')} onPress={handleSave} />
+      <Button label={t('settings.resetButton')} onPress={handleReset} variant="danger" />
+      <Muted style={styles.version}>{t('settings.version')}</Muted>
     </Screen>
   );
 }

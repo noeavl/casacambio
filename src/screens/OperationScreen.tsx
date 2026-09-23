@@ -15,6 +15,7 @@ import {
   Segmented,
 } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { AmountMode, ExchangeRate, Operation, OperationType } from '../types';
@@ -58,6 +59,7 @@ function RateChip({
 export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   const { settings, rates, registerOperation } = useApp();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const activeRates = useMemo(() => rates.filter((rate) => rate.active), [rates]);
@@ -91,7 +93,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   const handleRegister = () => {
     if (!selectedRate || !result) return;
     if (result.foreignAmount <= 0 || result.netLocal <= 0) {
-      Alert.alert('Monto inválido', 'Captura un monto mayor a cero para registrar la operación.');
+      Alert.alert(t('operation.invalidAmountTitle'), t('operation.invalidAmountMessage'));
       return;
     }
 
@@ -120,36 +122,33 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
 
   if (activeRates.length === 0) {
     return (
-      <Screen title="Operar" subtitle={settings.businessName}>
+      <Screen title={t('operation.title')} subtitle={settings.businessName}>
         <Card>
-          <EmptyState
-            title="Sin tipos de cambio activos"
-            hint="Agrega al menos una divisa con su precio de compra y venta para poder operar."
-          />
-          <Button label="Ir a tipos de cambio" onPress={onGoToRates} variant="outline" />
+          <EmptyState title={t('operation.emptyTitle')} hint={t('operation.emptyHint')} />
+          <Button label={t('operation.goToRates')} onPress={onGoToRates} variant="outline" />
         </Card>
       </Screen>
     );
   }
 
   return (
-    <Screen title="Operar" subtitle={`${settings.businessName} · ${settings.branch}`}>
+    <Screen title={t('operation.title')} subtitle={`${settings.businessName} · ${settings.branch}`}>
       <Segmented<OperationType>
         value={type}
         onChange={setType}
         options={[
-          { value: 'BUY', label: 'Compra' },
-          { value: 'SELL', label: 'Venta' },
+          { value: 'BUY', label: t('common.buy') },
+          { value: 'SELL', label: t('common.sell') },
         ]}
       />
       <Text style={styles.hint}>
         {isBuy
-          ? `Recibes divisa del cliente y pagas en ${settings.baseCurrency}.`
-          : `Entregas divisa al cliente y cobras en ${settings.baseCurrency}.`}
+          ? t('operation.hintBuy', { currency: settings.baseCurrency })
+          : t('operation.hintSell', { currency: settings.baseCurrency })}
       </Text>
 
       <View>
-        <SectionLabel>Tipo de cambio</SectionLabel>
+        <SectionLabel>{t('operation.rateSection')}</SectionLabel>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -174,13 +173,18 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'FOREIGN', label: `Monto en ${selectedRate?.code ?? 'divisa'}` },
-            { value: 'LOCAL', label: `Monto en ${settings.baseCurrency}` },
+            {
+              value: 'FOREIGN',
+              label: t('operation.amountInForeign', {
+                code: selectedRate?.code ?? t('operation.foreignFallback'),
+              }),
+            },
+            { value: 'LOCAL', label: t('operation.amountInLocal', { currency: settings.baseCurrency }) },
           ]}
         />
         <View style={styles.amountBlock}>
           <AmountInput
-            label="Monto"
+            label={t('operation.amountLabel')}
             value={amountText}
             onChangeText={(text) => setAmountText(sanitizeAmountInput(text))}
             suffix={mode === 'FOREIGN' ? (selectedRate?.code ?? '') : settings.baseCurrency}
@@ -190,48 +194,51 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
         <Divider />
 
         <Row
-          label="Tipo de cambio aplicado"
+          label={t('operation.appliedRate')}
           value={`${formatNumber(result?.appliedRate ?? 0, 4)} ${settings.baseCurrency}/${selectedRate?.code ?? ''}`}
         />
         <Row
-          label="Monto en divisa"
+          label={t('operation.foreignAmountLabel')}
           value={formatMoney(result?.foreignAmount ?? 0, selectedRate?.code ?? '', d)}
         />
-        <Row label="Subtotal" value={formatMoney(result?.grossLocal ?? 0, settings.baseCurrency, d)} />
         <Row
-          label={`Comisión ${formatNumber(settings.commissionPercent, 2)}%`}
+          label={t('operation.subtotal')}
+          value={formatMoney(result?.grossLocal ?? 0, settings.baseCurrency, d)}
+        />
+        <Row
+          label={t('operation.commission', { percent: formatNumber(settings.commissionPercent, 2) })}
           value={`${isBuy ? '-' : '+'} ${formatMoney(result?.commissionAmount ?? 0, settings.baseCurrency, d)}`}
         />
 
         <Divider />
 
         <Row
-          label={isBuy ? 'Pagas al cliente' : 'Cobras al cliente'}
+          label={isBuy ? t('operation.payClient') : t('operation.chargeClient')}
           value={formatMoney(result?.netLocal ?? 0, settings.baseCurrency, d)}
           emphasis
         />
       </Card>
 
       <Card>
-        <SectionLabel>Datos del recibo</SectionLabel>
+        <SectionLabel>{t('operation.receiptDataSection')}</SectionLabel>
         <View style={styles.group}>
           <Field
-            label="Cliente"
+            label={t('operation.customerLabel')}
             value={customer}
             onChangeText={setCustomer}
-            placeholder="Público en general"
+            placeholder={t('operation.customerPlaceholder')}
           />
           <Field
-            label="Nota"
+            label={t('operation.noteLabel')}
             value={note}
             onChangeText={setNote}
-            placeholder="Referencia, documento, observaciones"
+            placeholder={t('operation.notePlaceholder')}
             multiline
           />
         </View>
       </Card>
 
-      <Button label="Registrar y emitir recibo" onPress={handleRegister} />
+      <Button label={t('operation.registerButton')} onPress={handleRegister} />
 
       <ReceiptModal
         operation={receipt}

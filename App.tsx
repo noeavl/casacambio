@@ -11,6 +11,7 @@ import { RatesScreen } from './src/screens/RatesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { AppProvider, useApp } from './src/state/AppContext';
+import { LanguageProvider } from './src/state/LanguageContext';
 import { ThemeProvider, useTheme } from './src/state/ThemeContext';
 
 function Root() {
@@ -52,9 +53,11 @@ function AppShell() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AppShell />
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AppShell />
+        </ThemeProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

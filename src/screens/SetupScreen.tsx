@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../components/Screen';
 import { Button, Card, Field, Muted, SectionLabel } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type as type_, type Palette } from '../theme';
 import { parseAmount, sanitizeAmountInput } from '../utils/format';
@@ -12,6 +13,7 @@ import { parseAmount, sanitizeAmountInput } from '../utils/format';
 export function SetupScreen() {
   const { settings, completeSetup } = useApp();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [businessName, setBusinessName] = useState(settings.businessName);
@@ -35,69 +37,69 @@ export function SetupScreen() {
   };
 
   return (
-    <Screen title="Configuración" subtitle="Parámetros de inicio de la casa de cambio">
+    <Screen title={t('setup.title')} subtitle={t('setup.subtitle')}>
       <View style={styles.intro}>
-        <Text style={styles.introText}>
-          Estos datos encabezan cada recibo y definen cómo se calculan las operaciones. Podrás
-          cambiarlos después desde Ajustes.
-        </Text>
+        <Text style={styles.introText}>{t('setup.intro')}</Text>
       </View>
 
       <Card>
-        <SectionLabel>Identidad</SectionLabel>
+        <SectionLabel>{t('setup.identitySection')}</SectionLabel>
         <View style={styles.group}>
           <Field
-            label="Nombre del negocio"
+            label={t('setup.businessNameLabel')}
             value={businessName}
             onChangeText={setBusinessName}
-            placeholder="Casa de Cambio"
+            placeholder={t('setup.businessNamePlaceholder')}
           />
-          <Field label="Sucursal" value={branch} onChangeText={setBranch} placeholder="Matriz" />
           <Field
-            label="Operador / cajero"
+            label={t('setup.branchLabel')}
+            value={branch}
+            onChangeText={setBranch}
+            placeholder={t('setup.branchPlaceholder')}
+          />
+          <Field
+            label={t('setup.operatorLabel')}
             value={operator}
             onChangeText={setOperator}
-            placeholder="Nombre de quien atiende"
+            placeholder={t('setup.operatorPlaceholder')}
           />
         </View>
       </Card>
 
       <Card>
-        <SectionLabel>Operación</SectionLabel>
+        <SectionLabel>{t('setup.operationSection')}</SectionLabel>
         <View style={styles.group}>
           <Field
-            label="Moneda de caja"
+            label={t('setup.baseCurrencyLabel')}
             value={baseCurrency}
             onChangeText={(text) => setBaseCurrency(text.toUpperCase().slice(0, 4))}
-            placeholder="MXN"
+            placeholder={t('setup.baseCurrencyPlaceholder')}
             autoCapitalize="characters"
             maxLength={4}
-            hint="Moneda local con la que se liquidan las operaciones."
+            hint={t('setup.baseCurrencyHint')}
           />
           <Field
-            label="Comisión por operación (%)"
+            label={t('setup.commissionLabel')}
             value={commission}
             onChangeText={(text) => setCommission(sanitizeAmountInput(text))}
             keyboardType="decimal-pad"
-            placeholder="0"
-            hint="Se descuenta en compras y se suma en ventas. Usa 0 si no cobras comisión."
+            placeholder={t('setup.commissionPlaceholder')}
+            hint={t('setup.commissionHint')}
           />
           <Field
-            label="Prefijo de folio"
+            label={t('setup.receiptPrefixLabel')}
             value={receiptPrefix}
             onChangeText={(text) => setReceiptPrefix(text.toUpperCase().slice(0, 6))}
             autoCapitalize="characters"
             maxLength={6}
-            placeholder="REC"
-            hint="Los recibos se numeran como REC-00001."
+            placeholder={t('setup.receiptPrefixPlaceholder')}
+            hint={t('setup.receiptPrefixHint')}
           />
         </View>
       </Card>
 
-      <Button label="Comenzar a operar" onPress={handleStart} disabled={!canContinue} />
-      <Muted style={styles.note}>
-        Se crearán dos tipos de cambio de ejemplo (USD y EUR) que puedes editar o eliminar.
-      </Muted>
+      <Button label={t('setup.startButton')} onPress={handleStart} disabled={!canContinue} />
+      <Muted style={styles.note}>{t('setup.note')}</Muted>
     </Screen>
   );
 }

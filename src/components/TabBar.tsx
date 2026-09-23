@@ -2,17 +2,13 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { spacing, type as type_, type Palette } from '../theme';
 
 export type TabKey = 'operar' | 'tipos' | 'historial' | 'ajustes';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'operar', label: 'Operar' },
-  { key: 'tipos', label: 'Tipos' },
-  { key: 'historial', label: 'Historial' },
-  { key: 'ajustes', label: 'Ajustes' },
-];
+const TAB_KEYS: TabKey[] = ['operar', 'tipos', 'historial', 'ajustes'];
 
 export function TabBar({
   active,
@@ -22,26 +18,26 @@ export function TabBar({
   onChange: (key: TabKey) => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-      {TABS.map((tab) => {
-        const isActive = tab.key === active;
+      {TAB_KEYS.map((key) => {
+        const isActive = key === active;
+        const label = t(`tabs.${key}`);
         return (
           <Pressable
-            key={tab.key}
+            key={key}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={tab.label}
-            onPress={() => onChange(tab.key)}
+            accessibilityLabel={label}
+            onPress={() => onChange(key)}
             style={styles.tab}
           >
             <View style={[styles.dot, isActive && styles.dotActive]} />
-            <Text style={[styles.label, isActive && styles.labelActive]}>
-              {tab.label.toUpperCase()}
-            </Text>
+            <Text style={[styles.label, isActive && styles.labelActive]}>{label.toUpperCase()}</Text>
           </Pressable>
         );
       })}

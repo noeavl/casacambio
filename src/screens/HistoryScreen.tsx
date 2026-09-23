@@ -5,6 +5,7 @@ import { Screen } from '../components/Screen';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { Card, EmptyState, Muted, Segmented } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { Operation, OperationType } from '../types';
@@ -26,6 +27,7 @@ function isToday(iso: string): boolean {
 export function HistoryScreen() {
   const { settings, operations, removeOperation } = useApp();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [receipt, setReceipt] = useState<Operation | null>(null);
@@ -48,34 +50,36 @@ export function HistoryScreen() {
   );
 
   const confirmDelete = (operation: Operation) => {
-    Alert.alert('Eliminar operación', `¿Eliminar el recibo ${operation.folio}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => removeOperation(operation.id) },
+    Alert.alert(t('history.alertDeleteTitle'), t('history.alertDeleteMessage', { folio: operation.folio }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => removeOperation(operation.id) },
     ]);
   };
 
   return (
-    <Screen title="Historial" subtitle={`${operations.length} operaciones registradas`}>
+    <Screen title={t('history.title')} subtitle={t('history.subtitle', { count: operations.length })}>
       <Card>
-        <Text style={styles.summaryTitle}>RESUMEN DE HOY</Text>
+        <Text style={styles.summaryTitle}>{t('history.summaryTitle')}</Text>
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>OPERACIONES</Text>
+            <Text style={styles.summaryLabel}>{t('history.operationsLabel')}</Text>
             <Text style={styles.summaryValue}>{totals.count}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>PAGADO</Text>
+            <Text style={styles.summaryLabel}>{t('history.paidLabel')}</Text>
             <Text style={styles.summaryValue}>{formatNumber(totals.paid, settings.decimals)}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>COBRADO</Text>
+            <Text style={styles.summaryLabel}>{t('history.chargedLabel')}</Text>
             <Text style={styles.summaryValue}>
               {formatNumber(totals.charged, settings.decimals)}
             </Text>
           </View>
         </View>
         <Muted style={styles.summaryFoot}>
-          Saldo neto en caja: {formatMoney(totals.balance, settings.baseCurrency, settings.decimals)}
+          {t('history.balance', {
+            amount: formatMoney(totals.balance, settings.baseCurrency, settings.decimals),
+          })}
         </Muted>
       </Card>
 
@@ -83,18 +87,15 @@ export function HistoryScreen() {
         value={filter}
         onChange={setFilter}
         options={[
-          { value: 'ALL', label: 'Todas' },
-          { value: 'BUY', label: 'Compras' },
-          { value: 'SELL', label: 'Ventas' },
+          { value: 'ALL', label: t('history.filterAll') },
+          { value: 'BUY', label: t('history.filterBuy') },
+          { value: 'SELL', label: t('history.filterSell') },
         ]}
       />
 
       {visible.length === 0 ? (
         <Card>
-          <EmptyState
-            title="Sin operaciones"
-            hint="Las operaciones que registres aparecerán aquí con su recibo."
-          />
+          <EmptyState title={t('history.emptyTitle')} hint={t('history.emptyHint')} />
         </Card>
       ) : (
         visible.map((operation) => (
@@ -103,7 +104,7 @@ export function HistoryScreen() {
             onPress={() => setReceipt(operation)}
             onLongPress={() => confirmDelete(operation)}
             accessibilityRole="button"
-            accessibilityLabel={`Recibo ${operation.folio}`}
+            accessibilityLabel={t('history.receiptAccessibility', { folio: operation.folio })}
           >
             <Card style={styles.item}>
               <View style={styles.itemHead}>
@@ -113,7 +114,7 @@ export function HistoryScreen() {
                     operation.type === 'BUY' ? styles.itemBuy : styles.itemSell,
                   ]}
                 >
-                  {operationLabel(operation.type).toUpperCase()}
+                  {operationLabel(operation.type, t).toUpperCase()}
                 </Text>
                 <Text style={styles.itemFolio}>{operation.folio}</Text>
               </View>
@@ -137,7 +138,7 @@ export function HistoryScreen() {
         ))
       )}
 
-      <Muted style={styles.legend}>Toca una operación para ver su recibo. Mantén pulsado para eliminarla.</Muted>
+      <Muted style={styles.legend}>{t('history.legend')}</Muted>
 
       <ReceiptModal
         operation={receipt}

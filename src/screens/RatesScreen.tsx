@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../components/Screen';
 import { Button, Card, EmptyState, Field, Muted, SectionLabel } from '../components/ui';
 import { useApp } from '../state/AppContext';
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
 import type { ExchangeRate } from '../types';
@@ -36,6 +37,7 @@ function toDraft(rate: ExchangeRate): Draft {
 export function RatesScreen() {
   const { settings, rates, addRate, updateRate, removeRate } = useApp();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
@@ -51,22 +53,22 @@ export function RatesScreen() {
     const sell = parseAmount(draft.sell);
 
     if (code.length < 3) {
-      Alert.alert('Divisa', 'Captura el código ISO de la divisa, por ejemplo USD.');
+      Alert.alert(t('rates.alertCurrencyTitle'), t('rates.alertCodeRequired'));
       return;
     }
     if (buy <= 0 || sell <= 0) {
-      Alert.alert('Tipo de cambio', 'Los precios de compra y venta deben ser mayores a cero.');
+      Alert.alert(t('rates.alertRateTitle'), t('rates.alertPricesInvalid'));
       return;
     }
     if (code === settings.baseCurrency.toUpperCase()) {
-      Alert.alert('Divisa', 'La divisa no puede ser la misma que la moneda de caja.');
+      Alert.alert(t('rates.alertCurrencyTitle'), t('rates.alertSameAsBase'));
       return;
     }
     const duplicated = rates.some(
       (rate) => rate.code.toUpperCase() === code && rate.id !== draft.id,
     );
     if (duplicated) {
-      Alert.alert('Divisa', `Ya existe un tipo de cambio para ${code}.`);
+      Alert.alert(t('rates.alertCurrencyTitle'), t('rates.alertDuplicated', { code }));
       return;
     }
 
@@ -79,10 +81,10 @@ export function RatesScreen() {
   const handleDelete = () => {
     if (!draft?.id) return;
     const id = draft.id;
-    Alert.alert('Eliminar tipo de cambio', `¿Eliminar ${draft.code}?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('rates.alertDeleteTitle'), t('rates.alertDeleteMessage', { code: draft.code }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Eliminar',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           removeRate(id);
@@ -94,17 +96,21 @@ export function RatesScreen() {
 
   return (
     <Screen
-      title="Tipos de cambio"
-      subtitle={`Cotizados en ${settings.baseCurrency}`}
-      right={<Button label="Nuevo" onPress={openNew} variant="outline" style={styles.headerBtn} />}
+      title={t('rates.title')}
+      subtitle={t('rates.subtitle', { currency: settings.baseCurrency })}
+      right={
+        <Button
+          label={t('rates.newButton')}
+          onPress={openNew}
+          variant="outline"
+          style={styles.headerBtn}
+        />
+      }
     >
       {rates.length === 0 ? (
         <Card>
-          <EmptyState
-            title="Aún no hay divisas"
-            hint="Agrega una divisa con su precio de compra y de venta."
-          />
-          <Button label="Agregar divisa" onPress={openNew} />
+          <EmptyState title={t('rates.emptyTitle')} hint={t('rates.emptyHint')} />
+          <Button label={t('rates.addButton')} onPress={openNew} />
         </Card>
       ) : (
         rates.map((rate) => (
@@ -116,31 +122,31 @@ export function RatesScreen() {
                   <Text style={styles.rateName}>{rate.name}</Text>
                 </View>
                 <Text style={[styles.badge, rate.active ? styles.badgeOn : styles.badgeOff]}>
-                  {rate.active ? 'ACTIVO' : 'INACTIVO'}
+                  {rate.active ? t('rates.active') : t('rates.inactive')}
                 </Text>
               </View>
 
               <View style={styles.rateValues}>
                 <View style={styles.rateValue}>
-                  <Text style={styles.rateValueLabel}>COMPRA</Text>
+                  <Text style={styles.rateValueLabel}>{t('rates.buyLabel')}</Text>
                   <Text style={styles.rateValueNumber}>{formatNumber(rate.buy, 4)}</Text>
                 </View>
                 <View style={styles.rateSeparator} />
                 <View style={styles.rateValue}>
-                  <Text style={styles.rateValueLabel}>VENTA</Text>
+                  <Text style={styles.rateValueLabel}>{t('rates.sellLabel')}</Text>
                   <Text style={styles.rateValueNumber}>{formatNumber(rate.sell, 4)}</Text>
                 </View>
               </View>
 
-              <Muted style={styles.updated}>Actualizado {formatDateTime(rate.updatedAt)}</Muted>
+              <Muted style={styles.updated}>
+                {t('rates.updated', { date: formatDateTime(rate.updatedAt) })}
+              </Muted>
             </Card>
           </Pressable>
         ))
       )}
 
-      <Muted style={styles.legend}>
-        Compra: precio al que recibes la divisa. Venta: precio al que la entregas.
-      </Muted>
+      <Muted style={styles.legend}>{t('rates.legend')}</Muted>
 
       <Modal
         visible={draft !== null}
@@ -152,50 +158,50 @@ export function RatesScreen() {
           <Pressable style={styles.backdropTap} onPress={() => setDraft(null)} />
           <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
             <View style={styles.grabber} />
-            <SectionLabel>{draft?.id ? 'Editar divisa' : 'Nueva divisa'}</SectionLabel>
+            <SectionLabel>{draft?.id ? t('rates.editTitle') : t('rates.newTitle')}</SectionLabel>
 
             <View style={styles.form}>
               <Field
-                label="Código"
+                label={t('rates.codeLabel')}
                 value={draft?.code ?? ''}
                 onChangeText={(text) =>
                   setDraft((d) => (d ? { ...d, code: text.toUpperCase().slice(0, 4) } : d))
                 }
-                placeholder="USD"
+                placeholder={t('rates.codePlaceholder')}
                 autoCapitalize="characters"
                 maxLength={4}
               />
               <Field
-                label="Nombre"
+                label={t('rates.nameLabel')}
                 value={draft?.name ?? ''}
                 onChangeText={(text) => setDraft((d) => (d ? { ...d, name: text } : d))}
-                placeholder="Dólar estadounidense"
+                placeholder={t('rates.namePlaceholder')}
               />
               <View style={styles.formRow}>
                 <Field
-                  label={`Compra (${settings.baseCurrency})`}
+                  label={t('rates.buyFieldLabel', { currency: settings.baseCurrency })}
                   value={draft?.buy ?? ''}
                   onChangeText={(text) =>
                     setDraft((d) => (d ? { ...d, buy: sanitizeAmountInput(text) } : d))
                   }
                   keyboardType="decimal-pad"
-                  placeholder="0.00"
+                  placeholder={t('rates.pricePlaceholder')}
                   style={styles.formCol}
                 />
                 <Field
-                  label={`Venta (${settings.baseCurrency})`}
+                  label={t('rates.sellFieldLabel', { currency: settings.baseCurrency })}
                   value={draft?.sell ?? ''}
                   onChangeText={(text) =>
                     setDraft((d) => (d ? { ...d, sell: sanitizeAmountInput(text) } : d))
                   }
                   keyboardType="decimal-pad"
-                  placeholder="0.00"
+                  placeholder={t('rates.pricePlaceholder')}
                   style={styles.formCol}
                 />
               </View>
 
               <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Disponible para operar</Text>
+                <Text style={styles.switchLabel}>{t('rates.availableSwitch')}</Text>
                 <Switch
                   value={draft?.active ?? true}
                   onValueChange={(value) => setDraft((d) => (d ? { ...d, active: value } : d))}
@@ -207,15 +213,17 @@ export function RatesScreen() {
             </View>
 
             <View style={styles.sheetActions}>
-              <Button label="Guardar" onPress={handleSave} style={styles.action} />
+              <Button label={t('common.save')} onPress={handleSave} style={styles.action} />
               <Button
-                label="Cancelar"
+                label={t('common.cancel')}
                 onPress={() => setDraft(null)}
                 variant="outline"
                 style={styles.action}
               />
             </View>
-            {draft?.id ? <Button label="Eliminar" onPress={handleDelete} variant="danger" /> : null}
+            {draft?.id ? (
+              <Button label={t('rates.deleteButton')} onPress={handleDelete} variant="danger" />
+            ) : null}
           </View>
         </View>
       </Modal>

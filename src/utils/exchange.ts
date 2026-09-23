@@ -64,5 +64,7 @@ export function quote({
   };
 }
 
-export const operationLabel = (type: OperationType): string =>
-  type === 'BUY' ? 'Compra' : 'Venta';
+export const operationLabel = (
+  type: OperationType,
+  t: (key: 'common.buy' | 'common.sell') => string,
+): string => t(type === 'BUY' ? 'common.buy' : 'common.sell');
