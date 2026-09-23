@@ -217,7 +217,7 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
     paper: {
       backgroundColor: colors.paper,
-      borderRadius: 4,
+      borderRadius: 0,
       padding: spacing.lg,
       gap: 2,
     },

@@ -272,7 +272,7 @@ function createStyles(colors: Palette) {
       alignSelf: 'center',
       width: 36,
       height: 3,
-      borderRadius: 2,
+      borderRadius: 0,
       backgroundColor: colors.borderStrong,
     },
     form: { gap: spacing.lg },

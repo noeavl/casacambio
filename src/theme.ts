@@ -69,11 +69,12 @@ export const spacing = {
   xxl: 32,
 } as const;
 
+/** Diseño completamente flat: sin bordes redondeados en ningún elemento. */
 export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  pill: 999,
+  sm: 0,
+  md: 0,
+  lg: 0,
+  pill: 0,
 } as const;
 
 export const type = {

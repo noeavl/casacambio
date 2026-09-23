@@ -59,7 +59,7 @@ function createStyles(colors: Palette) {
     dot: {
       width: 5,
       height: 5,
-      borderRadius: 3,
+      borderRadius: 0,
       backgroundColor: 'transparent',
     },
     dotActive: { backgroundColor: colors.accent },
