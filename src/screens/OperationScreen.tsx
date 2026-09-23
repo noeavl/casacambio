@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { Screen } from '../components/Screen';
 import { ReceiptModal } from '../components/ReceiptModal';
 import {
@@ -13,12 +14,13 @@ import {
   Row,
   SectionLabel,
   Segmented,
+  SelectField,
 } from '../components/ui';
 import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
-import type { AmountMode, ExchangeRate, Operation, OperationType } from '../types';
+import type { AmountMode, Customer, ExchangeRate, Operation, OperationType } from '../types';
 import { quote } from '../utils/exchange';
 import { formatMoney, formatNumber, parseAmount, sanitizeAmountInput } from '../utils/format';
 
@@ -68,7 +70,8 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   const [mode, setMode] = useState<AmountMode>('FOREIGN');
   const [rateId, setRateId] = useState<string | null>(null);
   const [amountText, setAmountText] = useState('');
-  const [customer, setCustomer] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [note, setNote] = useState('');
   const [receipt, setReceipt] = useState<Operation | null>(null);
 
@@ -110,13 +113,13 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
       commissionAmount: result.commissionAmount,
       netLocal: result.netLocal,
       operator: settings.operator,
-      customer: customer.trim(),
+      customer: selectedCustomer?.name ?? '',
       note: note.trim(),
     });
 
     setReceipt(operation);
     setAmountText('');
-    setCustomer('');
+    setSelectedCustomer(null);
     setNote('');
   };
 
@@ -222,11 +225,11 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
       <Card>
         <SectionLabel>{t('operation.receiptDataSection')}</SectionLabel>
         <View style={styles.group}>
-          <Field
+          <SelectField
             label={t('operation.customerLabel')}
-            value={customer}
-            onChangeText={setCustomer}
+            value={selectedCustomer?.name}
             placeholder={t('operation.customerPlaceholder')}
+            onPress={() => setPickerOpen(true)}
           />
           <Field
             label={t('operation.noteLabel')}
@@ -245,6 +248,12 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
         settings={settings}
         visible={receipt !== null}
         onClose={() => setReceipt(null)}
+      />
+
+      <CustomerPickerModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={setSelectedCustomer}
       />
     </Screen>
   );

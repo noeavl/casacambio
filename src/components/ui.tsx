@@ -171,6 +171,32 @@ export function Field({
   );
 }
 
+export function SelectField({
+  label,
+  value,
+  placeholder,
+  onPress,
+  style,
+}: {
+  label: string;
+  value?: string;
+  placeholder: string;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const s = useStyles();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={[s.field, style]}>
+      <Text style={s.fieldLabel}>{label.toUpperCase()}</Text>
+      <View style={s.input}>
+        <Text style={value ? s.selectValue : s.selectPlaceholder} numberOfLines={1}>
+          {value || placeholder}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export function AmountInput({
   label,
   value,
@@ -355,6 +381,8 @@ function createStyles(colors: Palette) {
     inputRight: { textAlign: 'right' },
     inputMultiline: { minHeight: 76, textAlignVertical: 'top' },
     fieldHint: { ...type_.small, color: colors.textDim },
+    selectValue: { ...type_.body, color: colors.text },
+    selectPlaceholder: { ...type_.body, color: colors.textDim },
 
     amountWrap: {
       flexDirection: 'row',
