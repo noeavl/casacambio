@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { Button, Card, Field, Muted, SectionLabel } from '../components/ui';
@@ -11,7 +11,7 @@ import { parseAmount, sanitizeAmountInput } from '../utils/format';
 
 /** Configuración inicial: se muestra una sola vez, antes de operar. */
 export function SetupScreen() {
-  const { settings, completeSetup } = useApp();
+  const { settings, completeSetup, createFirstAdmin } = useApp();
   const { colors } = useTheme();
   const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -19,21 +19,42 @@ export function SetupScreen() {
   const [businessName, setBusinessName] = useState(settings.businessName);
   const [branch, setBranch] = useState(settings.branch);
   const [baseCurrency, setBaseCurrency] = useState(settings.baseCurrency);
-  const [operator, setOperator] = useState(settings.operator);
   const [receiptPrefix, setReceiptPrefix] = useState(settings.receiptPrefix);
   const [commission, setCommission] = useState(String(settings.commissionPercent));
 
-  const canContinue = businessName.trim().length > 0 && baseCurrency.trim().length >= 3;
+  const [adminName, setAdminName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleStart = () => {
+  const canContinue =
+    businessName.trim().length > 0 &&
+    baseCurrency.trim().length >= 3 &&
+    adminName.trim().length > 0 &&
+    username.trim().length > 0 &&
+    password.length > 0;
+
+  const handleStart = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert(t('setup.adminSection'), t('setup.alertPasswordMismatch'));
+      return;
+    }
+    if (password.length < 4) {
+      Alert.alert(t('setup.adminSection'), t('setup.alertPasswordTooShort'));
+      return;
+    }
+
+    setSubmitting(true);
+    await createFirstAdmin({ username, password, name: adminName.trim(), role: 'admin' });
     completeSetup({
       businessName: businessName.trim(),
       branch: branch.trim(),
       baseCurrency: baseCurrency.trim().toUpperCase(),
-      operator: operator.trim(),
       receiptPrefix: receiptPrefix.trim().toUpperCase() || 'REC',
       commissionPercent: parseAmount(commission),
     });
+    setSubmitting(false);
   };
 
   return (
@@ -56,12 +77,6 @@ export function SetupScreen() {
             value={branch}
             onChangeText={setBranch}
             placeholder={t('setup.branchPlaceholder')}
-          />
-          <Field
-            label={t('setup.operatorLabel')}
-            value={operator}
-            onChangeText={setOperator}
-            placeholder={t('setup.operatorPlaceholder')}
           />
         </View>
       </Card>
@@ -98,7 +113,45 @@ export function SetupScreen() {
         </View>
       </Card>
 
-      <Button label={t('setup.startButton')} onPress={handleStart} disabled={!canContinue} />
+      <Card>
+        <SectionLabel>{t('setup.adminSection')}</SectionLabel>
+        <Muted style={styles.adminIntro}>{t('setup.adminIntro')}</Muted>
+        <View style={styles.group}>
+          <Field
+            label={t('setup.adminNameLabel')}
+            value={adminName}
+            onChangeText={setAdminName}
+            placeholder={t('setup.adminNamePlaceholder')}
+          />
+          <Field
+            label={t('setup.usernameLabel')}
+            value={username}
+            onChangeText={setUsername}
+            placeholder={t('setup.usernamePlaceholder')}
+            autoCapitalize="none"
+          />
+          <Field
+            label={t('setup.passwordLabel')}
+            value={password}
+            onChangeText={setPassword}
+            autoCapitalize="none"
+            secureTextEntry
+          />
+          <Field
+            label={t('setup.confirmPasswordLabel')}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            autoCapitalize="none"
+            secureTextEntry
+          />
+        </View>
+      </Card>
+
+      <Button
+        label={t('setup.startButton')}
+        onPress={handleStart}
+        disabled={!canContinue || submitting}
+      />
       <Muted style={styles.note}>{t('setup.note')}</Muted>
     </Screen>
   );
@@ -108,6 +161,7 @@ function createStyles(colors: Palette) {
   return StyleSheet.create({
     intro: { paddingBottom: spacing.xs },
     introText: { ...type_.small, color: colors.textMuted, lineHeight: 20 },
+    adminIntro: { marginBottom: spacing.lg },
     group: { gap: spacing.lg },
     note: { textAlign: 'center' },
   });

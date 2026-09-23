@@ -59,7 +59,7 @@ function RateChip({
 }
 
 export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
-  const { settings, rates, registerOperation } = useApp();
+  const { settings, rates, registerOperation, currentUser } = useApp();
   const { colors } = useTheme();
   const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -112,7 +112,7 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
       commissionPercent: settings.commissionPercent,
       commissionAmount: result.commissionAmount,
       netLocal: result.netLocal,
-      operator: settings.operator,
+      operator: currentUser?.name ?? '',
       customer: selectedCustomer?.name ?? '',
       note: note.trim(),
     });

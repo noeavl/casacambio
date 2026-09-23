@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { Customer, ExchangeRate, Operation, Settings } from './types';
+import type { AppUser, Customer, ExchangeRate, Operation, Settings } from './types';
 import { uid } from './utils/format';
 
 const KEYS = {
@@ -8,6 +8,8 @@ const KEYS = {
   rates: '@casacambio/rates',
   operations: '@casacambio/operations',
   customers: '@casacambio/customers',
+  users: '@casacambio/users',
+  session: '@casacambio/session',
 } as const;
 
 export const defaultSettings: Settings = {
@@ -16,7 +18,6 @@ export const defaultSettings: Settings = {
   taxId: '',
   address: '',
   phone: '',
-  operator: '',
   baseCurrency: 'MXN',
   receiptPrefix: 'REC',
   nextFolio: 1,
@@ -65,9 +66,23 @@ export const storage = {
   loadCustomers: () => readJSON<Customer[]>(KEYS.customers, []),
   saveCustomers: (customers: Customer[]) => writeJSON(KEYS.customers, customers),
 
+  loadUsers: () => readJSON<AppUser[]>(KEYS.users, []),
+  saveUsers: (users: AppUser[]) => writeJSON(KEYS.users, users),
+
+  loadSession: () => readJSON<string | null>(KEYS.session, null),
+  saveSession: (userId: string | null) =>
+    userId ? writeJSON(KEYS.session, userId) : AsyncStorage.removeItem(KEYS.session).catch(() => {}),
+
   clearAll: async () => {
     try {
-      await AsyncStorage.multiRemove([KEYS.settings, KEYS.rates, KEYS.operations, KEYS.customers]);
+      await AsyncStorage.multiRemove([
+        KEYS.settings,
+        KEYS.rates,
+        KEYS.operations,
+        KEYS.customers,
+        KEYS.users,
+        KEYS.session,
+      ]);
     } catch {
       // ignorado a propósito
     }

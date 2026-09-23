@@ -7,6 +7,7 @@ import { TabBar, type TabKey } from './src/components/TabBar';
 import { Loader } from './src/components/ui';
 import { CustomersScreen } from './src/screens/CustomersScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
+import { LoginScreen } from './src/screens/LoginScreen';
 import { OperationScreen } from './src/screens/OperationScreen';
 import { RatesScreen } from './src/screens/RatesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -16,7 +17,7 @@ import { LanguageProvider } from './src/state/LanguageContext';
 import { ThemeProvider, useTheme } from './src/state/ThemeContext';
 
 function Root() {
-  const { ready, settings } = useApp();
+  const { ready, settings, currentUser } = useApp();
   const { colors } = useTheme();
   const [tab, setTab] = useState<TabKey>('operar');
 
@@ -24,6 +25,10 @@ function Root() {
 
   if (!settings.configured) {
     return <SetupScreen />;
+  }
+
+  if (!currentUser) {
+    return <LoginScreen />;
   }
 
   return (

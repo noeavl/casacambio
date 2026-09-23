@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
 import { Screen } from '../components/Screen';
-import { Card, Divider, MenuRow } from '../components/ui';
+import { Card, Divider, Muted, MenuRow } from '../components/ui';
 import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
+import { spacing } from '../theme';
 import { AboutSettingsScreen } from './settings/AboutSettingsScreen';
 import { AppearanceSettingsScreen } from './settings/AppearanceSettingsScreen';
 import { BusinessSettingsScreen } from './settings/BusinessSettingsScreen';
@@ -17,12 +18,19 @@ type SettingsSection = 'appearance' | 'language' | 'business' | 'operation' | 'r
 
 /** Menú de Ajustes: cada categoría vive en su propia subpantalla. */
 export function SettingsScreen() {
-  const { settings } = useApp();
+  const { settings, currentUser, logout } = useApp();
   const { preference: themePreference } = useTheme();
   const { preference: languagePreference, t } = useLanguage();
   const [section, setSection] = useState<SettingsSection | null>(null);
 
   const back = () => setSection(null);
+
+  const handleLogout = () => {
+    Alert.alert(t('settings.logoutConfirmTitle'), t('settings.logoutConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.logoutButton'), style: 'destructive', onPress: logout },
+    ]);
+  };
 
   if (section === 'appearance') return <AppearanceSettingsScreen onBack={back} />;
   if (section === 'language') return <LanguageSettingsScreen onBack={back} />;
@@ -67,6 +75,13 @@ export function SettingsScreen() {
       <Card style={styles.menuCard}>
         <MenuRow label={t('settings.statusSection')} onPress={() => setSection('about')} />
       </Card>
+
+      <Card style={styles.menuCard}>
+        {currentUser ? (
+          <Muted style={styles.signedInAs}>{t('settings.signedInAs', { name: currentUser.name })}</Muted>
+        ) : null}
+        <MenuRow label={t('settings.logoutButton')} onPress={handleLogout} danger />
+      </Card>
     </Screen>
   );
 }
@@ -74,4 +89,5 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   menuCard: { padding: 0 },
   rowDivider: { marginVertical: 0, marginHorizontal: 0 },
+  signedInAs: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
 });

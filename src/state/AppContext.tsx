@@ -9,10 +9,12 @@ import {
 } from 'react';
 
 import { defaultRates, defaultSettings, storage } from '../storage';
-import type { Customer, ExchangeRate, Operation, Settings } from '../types';
+import type { AppUser, Customer, ExchangeRate, Operation, Settings } from '../types';
+import { hashPassword, normalizeUsername } from '../utils/auth';
 import { buildFolio, uid } from '../utils/format';
 
 type NewOperation = Omit<Operation, 'id' | 'folio' | 'createdAt'>;
+type NewUser = { username: string; password: string; name: string; role: AppUser['role'] };
 
 interface AppContextValue {
   ready: boolean;
@@ -20,6 +22,8 @@ interface AppContextValue {
   rates: ExchangeRate[];
   operations: Operation[];
   customers: Customer[];
+  users: AppUser[];
+  currentUser: AppUser | null;
   updateSettings: (patch: Partial<Settings>) => void;
   completeSetup: (patch: Partial<Settings>) => void;
   addRate: (rate: Omit<ExchangeRate, 'id' | 'updatedAt'>) => void;
@@ -30,6 +34,10 @@ interface AppContextValue {
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Customer;
   updateCustomer: (id: string, patch: Partial<Omit<Customer, 'id'>>) => void;
   removeCustomer: (id: string) => void;
+  /** Crea el primer usuario (admin) al terminar la configuración inicial e inicia su sesión. */
+  createFirstAdmin: (user: NewUser) => Promise<void>;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
   resetAll: () => void;
 }
 
@@ -41,21 +49,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [loadedSettings, loadedRates, loadedOperations, loadedCustomers] = await Promise.all([
-        storage.loadSettings(),
-        storage.loadRates(),
-        storage.loadOperations(),
-        storage.loadCustomers(),
-      ]);
+      const [loadedSettings, loadedRates, loadedOperations, loadedCustomers, loadedUsers, session] =
+        await Promise.all([
+          storage.loadSettings(),
+          storage.loadRates(),
+          storage.loadOperations(),
+          storage.loadCustomers(),
+          storage.loadUsers(),
+          storage.loadSession(),
+        ]);
       if (!alive) return;
       setSettings(loadedSettings);
       setRates(loadedRates);
       setOperations(loadedOperations);
       setCustomers(loadedCustomers);
+      setUsers(loadedUsers);
+      const sessionUser = loadedUsers.find((u) => u.id === session && u.active);
+      setCurrentUserId(sessionUser ? sessionUser.id : null);
       setReady(true);
     })();
     return () => {
@@ -63,60 +79,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const updateSettings = useCallback(
-    (patch: Partial<Settings>) => {
-      setSettings((current) => {
-        const next = { ...current, ...patch };
-        void storage.saveSettings(next);
-        return next;
-      });
-    },
-    [],
-  );
+  const updateSettings = useCallback((patch: Partial<Settings>) => {
+    setSettings((current) => {
+      const next = { ...current, ...patch };
+      void storage.saveSettings(next);
+      return next;
+    });
+  }, []);
 
-  const completeSetup = useCallback(
-    (patch: Partial<Settings>) => {
-      setSettings((current) => {
-        const next = { ...current, ...patch, configured: true };
-        void storage.saveSettings(next);
-        return next;
-      });
-      setRates((current) => {
-        if (current.length > 0) return current;
-        const seeded = defaultRates();
-        void storage.saveRates(seeded);
-        return seeded;
-      });
-    },
-    [],
-  );
+  const completeSetup = useCallback((patch: Partial<Settings>) => {
+    setSettings((current) => {
+      const next = { ...current, ...patch, configured: true };
+      void storage.saveSettings(next);
+      return next;
+    });
+    setRates((current) => {
+      if (current.length > 0) return current;
+      const seeded = defaultRates();
+      void storage.saveRates(seeded);
+      return seeded;
+    });
+  }, []);
 
-  const addRate = useCallback(
-    (rate: Omit<ExchangeRate, 'id' | 'updatedAt'>) => {
-      setRates((current) => {
-        const next = [
-          ...current,
-          { ...rate, id: uid('rate'), updatedAt: new Date().toISOString() },
-        ];
-        void storage.saveRates(next);
-        return next;
-      });
-    },
-    [],
-  );
+  const addRate = useCallback((rate: Omit<ExchangeRate, 'id' | 'updatedAt'>) => {
+    setRates((current) => {
+      const next = [...current, { ...rate, id: uid('rate'), updatedAt: new Date().toISOString() }];
+      void storage.saveRates(next);
+      return next;
+    });
+  }, []);
 
-  const updateRate = useCallback(
-    (id: string, patch: Partial<Omit<ExchangeRate, 'id'>>) => {
-      setRates((current) => {
-        const next = current.map((rate) =>
-          rate.id === id ? { ...rate, ...patch, updatedAt: new Date().toISOString() } : rate,
-        );
-        void storage.saveRates(next);
-        return next;
-      });
-    },
-    [],
-  );
+  const updateRate = useCallback((id: string, patch: Partial<Omit<ExchangeRate, 'id'>>) => {
+    setRates((current) => {
+      const next = current.map((rate) =>
+        rate.id === id ? { ...rate, ...patch, updatedAt: new Date().toISOString() } : rate,
+      );
+      void storage.saveRates(next);
+      return next;
+    });
+  }, []);
 
   const removeRate = useCallback((id: string) => {
     setRates((current) => {
@@ -182,13 +183,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const persistUsers = useCallback((next: AppUser[]) => {
+    setUsers(next);
+    void storage.saveUsers(next);
+  }, []);
+
+  const createFirstAdmin = useCallback(
+    async (user: NewUser) => {
+      const record: AppUser = {
+        id: uid('usr'),
+        username: normalizeUsername(user.username),
+        passwordHash: await hashPassword(user.password),
+        name: user.name,
+        role: 'admin',
+        active: true,
+        createdAt: new Date().toISOString(),
+      };
+      persistUsers([record]);
+      setCurrentUserId(record.id);
+      void storage.saveSession(record.id);
+    },
+    [persistUsers],
+  );
+
+  const login = useCallback(
+    async (username: string, password: string): Promise<boolean> => {
+      const normalized = normalizeUsername(username);
+      const hash = await hashPassword(password);
+      const match = users.find((u) => u.username === normalized && u.active);
+      if (!match || match.passwordHash !== hash) return false;
+      setCurrentUserId(match.id);
+      void storage.saveSession(match.id);
+      return true;
+    },
+    [users],
+  );
+
+  const logout = useCallback(() => {
+    setCurrentUserId(null);
+    void storage.saveSession(null);
+  }, []);
+
   const resetAll = useCallback(() => {
     void storage.clearAll();
     setSettings(defaultSettings);
     setRates([]);
     setOperations([]);
     setCustomers([]);
+    setUsers([]);
+    setCurrentUserId(null);
   }, []);
+
+  const currentUser = useMemo(
+    () => users.find((u) => u.id === currentUserId) ?? null,
+    [users, currentUserId],
+  );
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -197,6 +246,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       rates,
       operations,
       customers,
+      users,
+      currentUser,
       updateSettings,
       completeSetup,
       addRate,
@@ -207,6 +258,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCustomer,
       updateCustomer,
       removeCustomer,
+      createFirstAdmin,
+      login,
+      logout,
       resetAll,
     }),
     [
@@ -215,6 +269,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       rates,
       operations,
       customers,
+      users,
+      currentUser,
       updateSettings,
       completeSetup,
       addRate,
@@ -225,6 +281,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCustomer,
       updateCustomer,
       removeCustomer,
+      createFirstAdmin,
+      login,
+      logout,
       resetAll,
     ],
   );

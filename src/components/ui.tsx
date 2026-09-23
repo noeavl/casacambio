@@ -134,6 +134,7 @@ export function Field({
   hint,
   multiline = false,
   align = 'left',
+  secureTextEntry = false,
   style,
 }: {
   label: string;
@@ -146,6 +147,7 @@ export function Field({
   hint?: string;
   multiline?: boolean;
   align?: 'left' | 'right';
+  secureTextEntry?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
@@ -163,6 +165,7 @@ export function Field({
         autoCorrect={false}
         maxLength={maxLength}
         multiline={multiline}
+        secureTextEntry={secureTextEntry}
         style={[s.input, align === 'right' && s.inputRight, multiline && s.inputMultiline]}
         selectionColor={colors.text}
       />

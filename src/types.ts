@@ -8,8 +8,6 @@ export interface Settings {
   taxId: string;
   address: string;
   phone: string;
-  /** Operador o cajero por defecto. */
-  operator: string;
   /** Moneda de caja (moneda local con la que se liquida). */
   baseCurrency: string;
   /** Prefijo del folio de recibo, ej. "REC". */
@@ -39,6 +37,25 @@ export interface ExchangeRate {
   sell: number;
   active: boolean;
   updatedAt: string;
+}
+
+/**
+ * Cuenta local de operador/cajero. Por ahora se administra 100% en el
+ * dispositivo; si más adelante existe un panel web, este es el modelo
+ * que se sincronizaría contra ese backend.
+ */
+export type UserRole = 'admin' | 'cashier';
+
+export interface AppUser {
+  id: string;
+  /** Único, en minúsculas. */
+  username: string;
+  /** Hash SHA-256 de la contraseña; nunca se guarda en texto plano. */
+  passwordHash: string;
+  name: string;
+  role: UserRole;
+  active: boolean;
+  createdAt: string;
 }
 
 /** Cliente registrado, para agilizar la captura de operaciones. */

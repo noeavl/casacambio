@@ -17,7 +17,6 @@ export function BusinessSettingsScreen({ onBack }: { onBack: () => void }) {
     taxId: settings.taxId,
     address: settings.address,
     phone: settings.phone,
-    operator: settings.operator,
   });
 
   useEffect(() => {
@@ -27,7 +26,6 @@ export function BusinessSettingsScreen({ onBack }: { onBack: () => void }) {
       taxId: settings.taxId,
       address: settings.address,
       phone: settings.phone,
-      operator: settings.operator,
     });
   }, [settings]);
 
@@ -41,7 +39,6 @@ export function BusinessSettingsScreen({ onBack }: { onBack: () => void }) {
       taxId: form.taxId.trim(),
       address: form.address.trim(),
       phone: form.phone.trim(),
-      operator: form.operator.trim(),
     });
     Alert.alert(t('settings.saveAlertTitle'), t('settings.saveAlertMessage'));
   };
@@ -66,7 +63,6 @@ export function BusinessSettingsScreen({ onBack }: { onBack: () => void }) {
             onChangeText={set('phone')}
             keyboardType="phone-pad"
           />
-          <Field label={t('settings.operatorLabel')} value={form.operator} onChangeText={set('operator')} />
         </View>
       </Card>
 
