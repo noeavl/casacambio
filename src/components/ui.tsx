@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import type { ReactNode } from 'react';
 
+import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
 
@@ -151,24 +152,44 @@ export function Field({
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const s = useStyles();
+  const [visible, setVisible] = useState(false);
+
+  const input = (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={colors.textDim}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
+      autoCorrect={false}
+      maxLength={maxLength}
+      multiline={multiline}
+      secureTextEntry={secureTextEntry && !visible}
+      style={[
+        secureTextEntry ? s.secureInput : s.input,
+        align === 'right' && s.inputRight,
+        multiline && s.inputMultiline,
+      ]}
+      selectionColor={colors.text}
+    />
+  );
+
   return (
     <View style={[s.field, style]}>
       <Text style={s.fieldLabel}>{label.toUpperCase()}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textDim}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        maxLength={maxLength}
-        multiline={multiline}
-        secureTextEntry={secureTextEntry}
-        style={[s.input, align === 'right' && s.inputRight, multiline && s.inputMultiline]}
-        selectionColor={colors.text}
-      />
+      {secureTextEntry ? (
+        <View style={s.secureWrap}>
+          {input}
+          <Pressable onPress={() => setVisible((v) => !v)} hitSlop={8}>
+            <Text style={s.secureToggle}>{visible ? t('common.hide') : t('common.show')}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        input
+      )}
       {hint ? <Text style={s.fieldHint}>{hint}</Text> : null}
     </View>
   );
@@ -384,6 +405,23 @@ function createStyles(colors: Palette) {
     inputRight: { textAlign: 'right' },
     inputMultiline: { minHeight: 76, textAlignVertical: 'top' },
     fieldHint: { ...type_.small, color: colors.textDim },
+    secureWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceAlt,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingRight: spacing.md,
+    },
+    secureInput: {
+      ...type_.body,
+      flex: 1,
+      color: colors.text,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+    },
+    secureToggle: { ...type_.tiny, color: colors.textMuted },
     selectValue: { ...type_.body, color: colors.text },
     selectPlaceholder: { ...type_.body, color: colors.textDim },
 

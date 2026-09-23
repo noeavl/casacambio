@@ -9,6 +9,8 @@ const es = {
     sell: 'Venta',
     back: 'Atrás',
     more: 'Más',
+    show: 'Mostrar',
+    hide: 'Ocultar',
   },
   tabs: {
     operar: 'Operar',
@@ -253,6 +255,8 @@ const en: Dictionary = {
     sell: 'Sell',
     back: 'Back',
     more: 'More',
+    show: 'Show',
+    hide: 'Hide',
   },
   tabs: {
     operar: 'Operate',
