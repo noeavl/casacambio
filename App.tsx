@@ -19,7 +19,7 @@ import { ThemeProvider, useTheme } from './src/state/ThemeContext';
 function Root() {
   const { ready, currentUser } = useApp();
   const { colors } = useTheme();
-  const [tab, setTab] = useState<TabKey>('operar');
+  const [tab, setTab] = useState<TabKey>('dashboard');
 
   if (!ready) return <Loader />;
 

@@ -17,7 +17,7 @@ export type TabKey = 'operar' | 'clientes' | 'tipos' | 'historial' | 'ajustes' |
  * súmala aquí (y su traducción en tabs.*): el TabBar decide solo cuáles
  * caben abajo y cuáles pasan al menú "Más".
  */
-const ALL_TABS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes', 'dashboard'];
+const ALL_TABS: TabKey[] = ['dashboard', 'operar', 'historial', 'clientes', 'tipos', 'ajustes'];
 
 /** Máximo de pestañas visibles a la vez, contando el botón "Más" si hace falta. */
 const MAX_VISIBLE_TABS = 4;
