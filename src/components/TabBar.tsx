@@ -10,14 +10,14 @@ import { spacing, type as type_, type Palette } from '../theme';
 import { Screen } from './Screen';
 import { Card, Divider, MenuRow } from './ui';
 
-export type TabKey = 'operar' | 'clientes' | 'tipos' | 'historial' | 'ajustes';
+export type TabKey = 'operar' | 'clientes' | 'tipos' | 'historial' | 'ajustes' | 'dashboard';
 
 /**
  * Orden de todas las pestañas de la app. Para agregar una nueva, solo
  * súmala aquí (y su traducción en tabs.*): el TabBar decide solo cuáles
  * caben abajo y cuáles pasan al menú "Más".
  */
-const ALL_TABS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes'];
+const ALL_TABS: TabKey[] = ['operar', 'clientes', 'tipos', 'historial', 'ajustes', 'dashboard'];
 
 /** Máximo de pestañas visibles a la vez, contando el botón "Más" si hace falta. */
 const MAX_VISIBLE_TABS = 4;
