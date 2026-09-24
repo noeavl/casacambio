@@ -51,7 +51,20 @@ async function loadAndBootstrap() {
     void storage.saveRates(rates);
   }
 
+  // Migra usuarios guardados con el esquema viejo (un solo campo 'name',
+  // antes de separarlo en firstName/lastName) para que no truenen al mostrarse.
   let users = loadedUsers;
+  let usersChanged = false;
+  users = users.map((u) => {
+    const legacy = u as AppUser & { name?: string };
+    if (legacy.firstName != null && legacy.lastName != null) return u;
+    usersChanged = true;
+    return { ...legacy, firstName: legacy.firstName ?? legacy.name ?? '', lastName: legacy.lastName ?? '' };
+  });
+  if (usersChanged) {
+    void storage.saveUsers(users);
+  }
+
   if (users.length === 0) {
     const admin: AppUser = {
       id: uid('usr'),

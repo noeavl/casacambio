@@ -65,6 +65,9 @@ export function buildFolio(prefix: string, sequence: number): string {
   return `${clean}-${String(sequence).padStart(5, '0')}`;
 }
 
-export function fullName(user: { firstName: string; lastName: string }): string {
-  return [user.firstName, user.lastName].filter((part) => part.trim().length > 0).join(' ');
+/** A prueba de datos viejos: firstName/lastName pueden faltar en registros previos a este campo. */
+export function fullName(user: { firstName?: string; lastName?: string }): string {
+  return [user.firstName, user.lastName]
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+    .join(' ');
 }
