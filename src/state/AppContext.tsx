@@ -8,10 +8,11 @@ import {
   type ReactNode,
 } from 'react';
 
+import { buildDemoData } from '../mocks/demoData';
 import { defaultRates, defaultSettings, storage } from '../storage';
 import type { AppUser, Customer, ExchangeRate, Operation, Settings } from '../types';
 import { hashPassword, normalizeEmail } from '../utils/auth';
-import { buildFolio, uid } from '../utils/format';
+import { buildFolio, fullName, uid } from '../utils/format';
 
 type NewOperation = Omit<Operation, 'id' | 'folio' | 'createdAt'>;
 
@@ -25,8 +26,9 @@ const DEFAULT_ADMIN = {
 
 /**
  * Carga lo guardado y rellena con valores por defecto lo que falte (ajustes,
- * tipos de cambio, usuario admin), sin ninguna pantalla de onboarding.
- * Se usa al arrancar la app y también tras "Restablecer aplicación".
+ * tipos de cambio, usuario admin, datos de ejemplo), sin ninguna pantalla de
+ * onboarding ni botón que lo dispare. Se usa al arrancar la app y también
+ * tras "Restablecer aplicación".
  */
 async function loadAndBootstrap() {
   const [loadedSettings, loadedRates, loadedOperations, loadedCustomers, loadedUsers, session] =
@@ -80,12 +82,26 @@ async function loadAndBootstrap() {
     void storage.saveUsers(users);
   }
 
+  let operations = loadedOperations;
+  let customers = loadedCustomers;
+  if (operations.length === 0 && customers.length === 0) {
+    const demo = buildDemoData(rates, settings, fullName(users[0]));
+    if (demo.operations.length > 0) {
+      customers = demo.customers;
+      operations = demo.operations;
+      settings = { ...settings, nextFolio: demo.nextFolio };
+      void storage.saveCustomers(customers);
+      void storage.saveOperations(operations);
+      void storage.saveSettings(settings);
+    }
+  }
+
   const sessionUser = users.find((u) => u.id === session && u.active);
   return {
     settings,
     rates,
-    operations: loadedOperations,
-    customers: loadedCustomers,
+    operations,
+    customers,
     users,
     currentUserId: sessionUser ? sessionUser.id : null,
   };
