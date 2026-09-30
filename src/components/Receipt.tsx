@@ -7,6 +7,8 @@ import { spacing, type Palette } from '../theme';
 import type { Operation, Settings } from '../types';
 import { operationLabel } from '../utils/exchange';
 import { formatDate, formatMoney, formatNumber, formatTime, monoFont } from '../utils/format';
+import { parseSignaturePath } from '../utils/signature';
+import { SignatureStrokesView } from './SignatureCanvas';
 
 type T = (key: Parameters<ReturnType<typeof useLanguage>['t']>[0], vars?: Record<string, string | number>) => string;
 
@@ -145,7 +147,21 @@ export function Receipt({ operation, settings }: { operation: Operation; setting
       ) : null}
 
       <Dashed styles={styles} />
-      <Text style={styles.signatureLine}>_____________________________</Text>
+      {operation.signature ? (
+        <View
+          style={[
+            styles.signatureBox,
+            { width: operation.signature.width, height: operation.signature.height },
+          ]}
+        >
+          <SignatureStrokesView
+            strokes={parseSignaturePath(operation.signature.path)}
+            color={colors.paperText}
+          />
+        </View>
+      ) : (
+        <Text style={styles.signatureLine}>_____________________________</Text>
+      )}
       <Text style={styles.centered}>{t('receipt.signature')}</Text>
 
       {settings.receiptFooter ? <Text style={styles.footer}>{settings.receiptFooter}</Text> : null}
@@ -185,6 +201,7 @@ export function receiptHTML(operation: Operation, settings: Settings, t: T): str
   .total { text-align: center; font-size: 20px; font-weight: 700; margin-top: 2px; }
   .note { font-style: italic; }
   .sign { text-align: center; margin-top: 18px; }
+  .sign-canvas { text-align: center; margin-top: 18px; }
   .foot { text-align: center; margin-top: 10px; }
   .small { text-align: center; font-size: 10px; color: #555; margin-top: 4px; }
 </style></head>
@@ -205,7 +222,11 @@ export function receiptHTML(operation: Operation, settings: Settings, t: T): str
   <div class="total">${esc(data.total)}</div>
   ${operation.note ? `<div class="dash"></div><div class="note">${esc(operation.note)}</div>` : ''}
   <div class="dash"></div>
-  <div class="sign">_____________________________</div>
+  ${
+    operation.signature
+      ? `<div class="sign-canvas"><svg viewBox="0 0 ${operation.signature.width} ${operation.signature.height}" width="100%" height="70" xmlns="http://www.w3.org/2000/svg"><path d="${esc(operation.signature.path)}" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg></div>`
+      : `<div class="sign">_____________________________</div>`
+  }
   <div class="c">${esc(t('receipt.signature'))}</div>
   ${settings.receiptFooter ? `<div class="foot">${esc(settings.receiptFooter)}</div>` : ''}
   <div class="small">${esc(t('receipt.disclaimer'))}</div>
@@ -266,6 +287,7 @@ function createStyles(colors: Palette) {
     },
     note: { ...mono, color: colors.paperText, fontSize: 11, fontStyle: 'italic' },
     signatureLine: { ...mono, color: colors.paperText, fontSize: 11, textAlign: 'center', marginTop: spacing.lg },
+    signatureBox: { alignSelf: 'center', marginTop: spacing.lg, overflow: 'hidden' },
     footer: { ...mono, color: colors.paperText, fontSize: 11, textAlign: 'center', marginTop: spacing.md },
     disclaimer: { ...mono, color: colors.paperMuted, fontSize: 10, textAlign: 'center', marginTop: 2 },
   });

@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { Screen } from '../components/Screen';
 import { ReceiptModal } from '../components/ReceiptModal';
+import { SignaturePadModal } from '../components/SignaturePadModal';
 import {
   AmountInput,
   Button,
@@ -20,7 +21,7 @@ import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
 import { radius, spacing, type as type_, type Palette } from '../theme';
-import type { AmountMode, Customer, ExchangeRate, Operation, OperationType } from '../types';
+import type { AmountMode, Customer, ExchangeRate, Operation, OperationType, Signature } from '../types';
 import { quote } from '../utils/exchange';
 import { formatMoney, formatNumber, fullName, parseAmount, sanitizeAmountInput } from '../utils/format';
 
@@ -73,6 +74,8 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [note, setNote] = useState('');
+  const [signature, setSignature] = useState<Signature | null>(null);
+  const [signaturePadOpen, setSignaturePadOpen] = useState(false);
   const [receipt, setReceipt] = useState<Operation | null>(null);
 
   const selectedRate =
@@ -115,12 +118,14 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
       operator: currentUser ? fullName(currentUser) : '',
       customer: selectedCustomer?.name ?? '',
       note: note.trim(),
+      signature: signature ?? undefined,
     });
 
     setReceipt(operation);
     setAmountText('');
     setSelectedCustomer(null);
     setNote('');
+    setSignature(null);
   };
 
   if (activeRates.length === 0) {
@@ -238,6 +243,19 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
             placeholder={t('operation.notePlaceholder')}
             multiline
           />
+          <SelectField
+            label={t('operation.signatureLabel')}
+            value={signature ? t('operation.signatureCaptured') : undefined}
+            placeholder={t('operation.signaturePlaceholder')}
+            onPress={() => setSignaturePadOpen(true)}
+          />
+          {signature ? (
+            <Button
+              label={t('operation.signatureRemove')}
+              onPress={() => setSignature(null)}
+              variant="outline"
+            />
+          ) : null}
         </View>
       </Card>
 
@@ -254,6 +272,15 @@ export function OperationScreen({ onGoToRates }: { onGoToRates: () => void }) {
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onSelect={setSelectedCustomer}
+      />
+
+      <SignaturePadModal
+        visible={signaturePadOpen}
+        onCancel={() => setSignaturePadOpen(false)}
+        onSave={(sig) => {
+          setSignature(sig);
+          setSignaturePadOpen(false);
+        }}
       />
     </Screen>
   );

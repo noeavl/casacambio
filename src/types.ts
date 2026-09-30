@@ -79,6 +79,13 @@ export type OperationType = 'BUY' | 'SELL';
 /** El monto capturado puede expresarse en divisa o en moneda local. */
 export type AmountMode = 'FOREIGN' | 'LOCAL';
 
+/** Firma capturada a mano en pantalla, como trazo vectorial (atributo "d" de SVG). */
+export interface Signature {
+  path: string;
+  width: number;
+  height: number;
+}
+
 export interface Operation {
   id: string;
   folio: string;
@@ -100,5 +107,7 @@ export interface Operation {
   operator: string;
   customer: string;
   note: string;
+  /** Firma del cliente capturada en el momento de la operación, si se tomó. */
+  signature?: Signature;
   createdAt: string;
 }
