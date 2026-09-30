@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { CurrencyPickerModal } from '../components/CurrencyPickerModal';
 import { Screen } from '../components/Screen';
-import { Button, Card, EmptyState, Field, Muted, SelectField } from '../components/ui';
+import { Button, Card, EmptyState, Field, Muted } from '../components/ui';
 import { useApp } from '../state/AppContext';
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
@@ -41,7 +40,6 @@ export function RatesScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   const openNew = () => setDraft({ ...emptyDraft });
   const openEdit = (rate: ExchangeRate) => setDraft(toDraft(rate));
@@ -158,11 +156,21 @@ export function RatesScreen() {
         <Screen title={draft?.id ? t('rates.editTitle') : t('rates.newTitle')} onBack={closeDraft}>
           <Card>
             <View style={styles.form}>
-              <SelectField
-                label={t('rates.currencyLabel')}
-                value={draft?.code ? `${draft.code} · ${draft.name}` : ''}
-                placeholder={t('rates.currencyPlaceholder')}
-                onPress={() => setPickerOpen(true)}
+              <Field
+                label={t('rates.codeLabel')}
+                value={draft?.code ?? ''}
+                onChangeText={(text) =>
+                  setDraft((d) => (d ? { ...d, code: text.toUpperCase().slice(0, 4) } : d))
+                }
+                placeholder={t('rates.codePlaceholder')}
+                autoCapitalize="characters"
+                maxLength={4}
+              />
+              <Field
+                label={t('rates.nameLabel')}
+                value={draft?.name ?? ''}
+                onChangeText={(text) => setDraft((d) => (d ? { ...d, name: text } : d))}
+                placeholder={t('rates.namePlaceholder')}
               />
               <View style={styles.formRow}>
                 <Field
@@ -206,19 +214,6 @@ export function RatesScreen() {
             <Button label={t('rates.deleteButton')} onPress={handleDelete} variant="danger" />
           ) : null}
         </Screen>
-
-        <CurrencyPickerModal
-          visible={pickerOpen}
-          excludeCodes={rates
-            .filter((rate) => rate.id !== draft?.id)
-            .map((rate) => rate.code)
-            .concat(settings.baseCurrency)}
-          onClose={() => setPickerOpen(false)}
-          onSelect={({ code, name }) => {
-            setDraft((d) => (d ? { ...d, code, name } : d));
-            setPickerOpen(false);
-          }}
-        />
       </Modal>
     </Screen>
   );
