@@ -32,6 +32,9 @@ export function defaultRates(): ExchangeRate[] {
   return [
     { id: uid('rate'), code: 'USD', name: 'Dólar estadounidense', buy: 17.1, sell: 17.9, active: true, updatedAt: now },
     { id: uid('rate'), code: 'EUR', name: 'Euro', buy: 18.4, sell: 19.3, active: true, updatedAt: now },
+    { id: uid('rate'), code: 'CAD', name: 'Dólar canadiense', buy: 12.3, sell: 13.1, active: true, updatedAt: now },
+    { id: uid('rate'), code: 'GBP', name: 'Libra esterlina', buy: 21.5, sell: 22.6, active: true, updatedAt: now },
+    { id: uid('rate'), code: 'JPY', name: 'Yen japonés', buy: 0.111, sell: 0.121, active: true, updatedAt: now },
   ];
 }
 
