@@ -1,19 +1,20 @@
 import { useMemo, useRef, useState } from 'react';
-import { Modal, PanResponder, StyleSheet, View } from 'react-native';
+import { Modal, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLanguage } from '../state/LanguageContext';
 import { useTheme } from '../state/ThemeContext';
-import { spacing, type Palette } from '../theme';
+import { spacing, type as type_, type Palette } from '../theme';
 import type { Signature } from '../types';
-import { buildSignaturePath, type SignaturePoint } from '../utils/signature';
-import { Screen } from './Screen';
+import { buildSignaturePath, cropSignatureStrokes, type SignaturePoint } from '../utils/signature';
 import { SignatureStrokesView } from './SignatureCanvas';
-import { Button, Muted } from './ui';
+import { Button } from './ui';
 
-const PAD_WIDTH = 320;
-const PAD_HEIGHT = 180;
-
-/** Captura de firma a mano alzada, de pantalla completa, sin librerías de dibujo. */
+/**
+ * Captura de firma a mano alzada. El lienzo ocupa toda la pantalla
+ * disponible (para que el cliente tenga espacio real donde firmar) y los
+ * botones quedan aparte, fijos abajo, fuera del área de dibujo.
+ */
 export function SignaturePadModal({
   visible,
   onCancel,
@@ -25,6 +26,7 @@ export function SignaturePadModal({
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [strokes, setStrokes] = useState<SignaturePoint[][]>([]);
@@ -63,7 +65,9 @@ export function SignaturePadModal({
   const handleSave = () => {
     const all = liveStroke.length > 0 ? [...strokes, liveStroke] : strokes;
     if (all.length === 0) return;
-    onSave({ path: buildSignaturePath(all), width: PAD_WIDTH, height: PAD_HEIGHT });
+    const cropped = cropSignatureStrokes(all);
+    if (cropped.width === 0) return;
+    onSave({ path: buildSignaturePath(cropped.strokes), width: cropped.width, height: cropped.height });
     reset();
   };
 
@@ -71,34 +75,69 @@ export function SignaturePadModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleCancel}>
-      <Screen title={t('operation.signatureTitle')} onBack={handleCancel}>
-        <Muted style={styles.hint}>{t('operation.signatureHint')}</Muted>
-
-        <View style={styles.padWrap}>
-          <View style={styles.pad} {...panResponder.panHandlers}>
-            <SignatureStrokesView strokes={[...strokes, liveStroke]} color={colors.paperText} />
-          </View>
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <Pressable onPress={handleCancel} accessibilityRole="button" hitSlop={8}>
+            <Text style={styles.headerAction}>‹ {t('common.cancel')}</Text>
+          </Pressable>
+          <Text style={styles.title}>{t('operation.signatureTitle')}</Text>
+          <Pressable onPress={reset} accessibilityRole="button" hitSlop={8} disabled={isEmpty}>
+            <Text style={[styles.headerAction, isEmpty && styles.headerActionDisabled]}>
+              {t('operation.signatureClear')}
+            </Text>
+          </Pressable>
         </View>
 
-        <Button label={t('operation.signatureClear')} onPress={reset} variant="outline" />
-        <Button label={t('common.save')} onPress={handleSave} disabled={isEmpty} />
-        <Button label={t('common.cancel')} onPress={handleCancel} variant="ghost" />
-      </Screen>
+        <View style={styles.pad} {...panResponder.panHandlers}>
+          {isEmpty ? <Text style={styles.placeholder}>{t('operation.signatureHint')}</Text> : null}
+          <SignatureStrokesView strokes={[...strokes, liveStroke]} color={colors.paperText} strokeWidth={3} />
+        </View>
+
+        <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+          <Button label={t('common.cancel')} onPress={handleCancel} variant="outline" style={styles.actionBtn} />
+          <Button
+            label={t('common.save')}
+            onPress={handleSave}
+            disabled={isEmpty}
+            style={styles.actionBtn}
+          />
+        </View>
+      </View>
     </Modal>
   );
 }
 
 function createStyles(colors: Palette) {
   return StyleSheet.create({
-    hint: { textAlign: 'center', marginBottom: spacing.md },
-    padWrap: { alignItems: 'center', marginBottom: spacing.lg },
+    root: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    headerAction: { ...type_.small, color: colors.accent },
+    headerActionDisabled: { color: colors.textDim },
+    title: { ...type_.section, color: colors.text },
     pad: {
-      width: PAD_WIDTH,
-      height: PAD_HEIGHT,
+      flex: 1,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
       backgroundColor: colors.paper,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
       overflow: 'hidden',
     },
+    placeholder: { ...type_.small, color: colors.paperMuted, textAlign: 'center', paddingHorizontal: spacing.xl },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+    },
+    actionBtn: { flex: 1 },
   });
 }
